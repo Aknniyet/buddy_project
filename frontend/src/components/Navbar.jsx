@@ -1,4 +1,5 @@
 import "../styles/navbar.css";
+import { NavLink } from "react-router-dom";
 
 function Navbar() {
   return (
@@ -7,9 +8,17 @@ function Navbar() {
         <div className="logo">BuddyConnect</div>
 
         <nav className="nav-links">
-          <a href="/">Home</a>
-          <a href="/about">About</a>
-          <a href="/guide">Adaptation Guide</a>
+          <NavLink to="/"  className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}> 
+           Home 
+          </NavLink>
+
+          <NavLink to="/about" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
+           About
+          </NavLink>
+
+            <NavLink to="/guide" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}> 
+            Adaptation Guide 
+            </NavLink>
         </nav>
 
         <div className="nav-actions">
