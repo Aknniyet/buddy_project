@@ -1,4 +1,4 @@
-import "../styles/navbar.css";
+import "../../styles/navbar.css";
 import { NavLink } from "react-router-dom";
 
 function Navbar() {
@@ -22,11 +22,14 @@ function Navbar() {
         </nav>
 
         <div className="nav-actions">
-          <a href="/login" className="login">
-            Log in
-          </a>
-          <button className="signup-btn">Sign up</button>
-        </div>
+        <NavLink to="/login" className="login">
+          Log in
+        </NavLink>
+
+        <NavLink to="/signup" className="signup-btn">
+          Sign up
+        </NavLink>
+      </div>
       </div>
     </header>
   );

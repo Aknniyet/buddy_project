@@ -1,9 +1,10 @@
 import { Routes, Route } from "react-router-dom";
 
 import HomePage from "../pages/public/HomePage";
-import LoginPage from "../pages/public/LoginPage";
 import AboutPage from "../pages/public/AboutPage";
 import AdaptationGuidePage from "../pages/public/AdaptationGuidePage";
+import LoginPage from "../pages/public/LoginPage";
+import SignupPage from "../pages/public/SignupPage";
 
 import StudentOverview from "../pages/student/StudentOverview";
 import BuddyOverview from "../pages/buddy/BuddyOverview";
@@ -15,6 +16,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupPage />} />
       <Route path="/about" element={<AboutPage />} />
       <Route path="/guide" element={<AdaptationGuidePage />} />
 
