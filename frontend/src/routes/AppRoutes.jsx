@@ -20,7 +20,7 @@ function AppRoutes() {
       <Route path="/about" element={<AboutPage />} />
       <Route path="/guide" element={<AdaptationGuidePage />} />
 
-      <Route path="/student" element={<StudentOverview />} />
+      <Route path="/student/overview" element={<StudentOverview />} />
       <Route path="/buddy" element={<BuddyOverview />} />
 
       <Route path="/admin" element={<AdminDashboard />} />
