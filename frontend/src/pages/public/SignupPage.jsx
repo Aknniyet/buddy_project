@@ -85,13 +85,10 @@ function SignupPage() {
                     <p>Looking for a local buddy</p>
                   </button>
 
-                  <button
-                    type="button"
-                    className={`role-card ${
+                  <button type="button" className={`role-card ${
                       selectedRole === "local" ? "selected" : ""
                     }`}
-                    onClick={() => setSelectedRole("local")}
-                  >
+                    onClick={() => setSelectedRole("local")}>
                     <div className="role-icon">
                       <MapPin size={28} />
                     </div>
@@ -100,11 +97,8 @@ function SignupPage() {
                   </button>
                 </div>
 
-                <button
-                  type="button"
-                  className="signup-primary-btn full-width"
-                  onClick={handleNext}
-                >
+                <button type="button" className="signup-primary-btn full-width"
+                  onClick={handleNext}>
                   Continue
                   <ChevronRight size={18} />
                 </button>
@@ -162,20 +156,14 @@ function SignupPage() {
                 </div>
 
                 <div className="signup-buttons-row">
-                  <button
-                    type="button"
-                    className="signup-secondary-btn"
-                    onClick={handleBack}
-                  >
+                  <button type="button" className="signup-secondary-btn"
+                    onClick={handleBack}>
                     <ChevronLeft size={18} />
                     Back
                   </button>
 
-                  <button
-                    type="button"
-                    className="signup-primary-btn"
-                    onClick={handleNext}
-                  >
+                  <button type="button" className="signup-primary-btn"
+                    onClick={handleNext}>
                     Continue
                     <ChevronRight size={18} />
                   </button>
@@ -224,11 +212,8 @@ function SignupPage() {
                 </div>
 
                 <div className="signup-buttons-row">
-                  <button
-                    type="button"
-                    className="signup-secondary-btn"
-                    onClick={handleBack}
-                  >
+                  <button type="button" className="signup-secondary-btn"
+                    onClick={handleBack}>
                     <ChevronLeft size={18} />
                     Back
                   </button>
