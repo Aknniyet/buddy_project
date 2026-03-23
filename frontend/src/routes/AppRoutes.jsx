@@ -8,6 +8,7 @@ import SignupPage from "../pages/public/SignupPage";
 
 import StudentOverview from "../pages/student/StudentOverview";
 import FindBuddiesPage from "../pages/student/FindBuddiesPage";
+import MessagesPage from "../pages/student/MessagesPage";
 
 
 import BuddyOverview from "../pages/buddy/BuddyOverview";
@@ -25,6 +26,7 @@ function AppRoutes() {
 
       <Route path="/student/overview" element={<StudentOverview />} />
       <Route path="/student/find-buddies" element={<FindBuddiesPage />} />
+      <Route path="/student/messages" element={<MessagesPage />} />
       
       <Route path="/buddy" element={<BuddyOverview />} />
 
