@@ -104,7 +104,6 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
 }
 
 .sidebar-user h4 {
