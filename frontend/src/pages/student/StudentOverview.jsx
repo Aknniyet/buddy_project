@@ -5,7 +5,7 @@ import RecentMessagesCard from "../../components/dashboard/RecentMessagesCard";
 
 function StudentOverviewPage() {
   return (
-    <DashboardLayout>
+    <DashboardLayout title="Overview">
       <section className="overview-page">
         <div className="overview-welcome">
           <h1>Welcome back, Yuki!</h1>

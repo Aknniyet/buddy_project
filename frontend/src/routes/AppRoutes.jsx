@@ -7,6 +7,11 @@ import LoginPage from "../pages/public/LoginPage";
 import SignupPage from "../pages/public/SignupPage";
 
 import StudentOverview from "../pages/student/StudentOverview";
+import FindBuddiesPage from "../pages/student/FindBuddiesPage";
+import MessagesPage from "../pages/student/MessagesPage";
+import NotificationsPage from "../pages/student/NotificationsPage";
+import ProfilePage from "../pages/student/ProfilePage";
+
 import BuddyOverview from "../pages/buddy/BuddyOverview";
 
 import AdminDashboard from "../pages/admin/AdminDashboard";
@@ -21,6 +26,11 @@ function AppRoutes() {
       <Route path="/guide" element={<AdaptationGuidePage />} />
 
       <Route path="/student/overview" element={<StudentOverview />} />
+      <Route path="/student/find-buddies" element={<FindBuddiesPage />} />
+      <Route path="/student/messages" element={<MessagesPage />} />
+      <Route path="/student/notifications" element={<NotificationsPage />} />
+      <Route path="/student/profile" element={<ProfilePage />} />
+      
       <Route path="/buddy" element={<BuddyOverview />} />
 
       <Route path="/admin" element={<AdminDashboard />} />
