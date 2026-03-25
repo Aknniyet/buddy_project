@@ -14,6 +14,8 @@ import NotificationsPage from "../pages/student/NotificationsPage";
 import ProfilePage from "../pages/student/ProfilePage";
 
 import BuddyOverviewPage from "../pages/buddy/BuddyOverviewPage";
+import MyBuddiesPage from "../pages/buddy/MyBuddiesPage";
+import BuddyRequestsPage from "../pages/buddy/BuddyRequestsPage";
 
 import AdminDashboard from "../pages/admin/AdminDashboard";
 
@@ -34,6 +36,8 @@ function AppRoutes() {
       <Route path="/student/profile" element={<ProfilePage />} />
       
       <Route path="/buddy/overview" element={<BuddyOverviewPage />} />
+      <Route path="/buddy/my-buddies" element={<MyBuddiesPage />} />
+      <Route path="/buddy/buddy-requests" element={<BuddyRequestsPage />} />
 
       <Route path="/admin" element={<AdminDashboard />} />
     </Routes>
