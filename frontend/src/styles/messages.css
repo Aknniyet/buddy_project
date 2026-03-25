@@ -23,7 +23,7 @@
   display: grid;
   grid-template-columns: 400px 1fr;
   gap: 18px;
-  min-height: 700px;
+  height: calc(100vh - 170px);
 }
 
 .messages-sidebar-card,
@@ -107,7 +107,7 @@
 .chat-window-card {
   display: flex;
   flex-direction: column;
-  min-height: 700px;
+  height: 100%;
 }
 
 .chat-header {
@@ -234,7 +234,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 700px;
+  height: 100%;
 }
 
 .empty-chat-content {
@@ -255,6 +255,39 @@
 }
 
 .empty-chat-content p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.empty-conversations-state {
+  display: flex;
+  flex-direction: column;
+}
+
+.empty-conversations-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  color: #667085;
+  text-align: center;
+  padding: 24px;
+}
+
+.empty-conversations-content svg {
+  color: #a8b1bb;
+  margin-bottom: 16px;
+}
+
+.empty-conversations-content h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.empty-conversations-content p {
   margin: 0;
   font-size: 14px;
 }
