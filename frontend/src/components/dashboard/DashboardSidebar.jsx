@@ -1,8 +1,23 @@
-import { NavLink, Link } from "react-router-dom";
+import { NavLink, Link, useNavigate } from "react-router-dom";
 import { LogOut, Users } from "lucide-react";
 import { sidebarLinks, currentUser } from "../../constants/dashboardData";
+import {
+  localSidebarLinks,
+  localCurrentUser,
+} from "../../constants/localDashboardData";
 
-function DashboardSidebar() {
+function DashboardSidebar({ sidebarType = "student" }) {
+  const navigate = useNavigate();
+
+  const links = sidebarType === "buddy" ? localSidebarLinks : sidebarLinks;
+  const user = sidebarType === "buddy" ? localCurrentUser : currentUser;
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
+  };
+
   return (
     <aside className="dashboard-sidebar">
       <div>
@@ -14,7 +29,7 @@ function DashboardSidebar() {
         </Link>
 
         <nav className="sidebar-nav">
-          {sidebarLinks.map((item) => {
+          {links.map((item) => {
             const Icon = item.icon;
 
             return (
@@ -35,14 +50,14 @@ function DashboardSidebar() {
 
       <div className="sidebar-bottom">
         <div className="sidebar-user">
-          <div className="sidebar-user-avatar">{currentUser.initials}</div>
+          <div className="sidebar-user-avatar">{user.initials}</div>
           <div>
-            <h4>{currentUser.name}</h4>
-            <p>{currentUser.role}</p>
+            <h4>{user.name}</h4>
+            <p>{user.role}</p>
           </div>
         </div>
 
-        <button className="logout-button">
+        <button className="logout-button" onClick={handleLogout}>
           <LogOut size={18} />
           <span>Log out</span>
         </button>
