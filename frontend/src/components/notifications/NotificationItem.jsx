@@ -1,6 +1,6 @@
 import { Check, Trash2 } from "lucide-react";
 
-function NotificationItem({ notification }) {
+function NotificationItem({ notification, onMarkRead, onDelete }) {
   const Icon = notification.icon;
 
   return (
@@ -26,13 +26,21 @@ function NotificationItem({ notification }) {
             </button>
 
             {!notification.read && (
-              <button type="button" className="notification-link">
+              <button
+                type="button"
+                className="notification-link"
+                onClick={() => onMarkRead(notification.id)}
+              >
                 <Check size={16} />
                 <span>Mark as read</span>
               </button>
             )}
 
-            <button type="button" className="notification-link">
+            <button
+              type="button"
+              className="notification-link"
+              onClick={() => onDelete(notification.id)}
+            >
               <Trash2 size={16} />
               <span>Delete</span>
             </button>

@@ -152,6 +152,36 @@
   margin-top: 4px;
 }
 
+.notifications-empty-state {
+  min-height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.notifications-empty-content {
+  text-align: center;
+  color: #667085;
+}
+
+.notifications-empty-content svg {
+  color: #a8b1bb;
+  margin-bottom: 16px;
+}
+
+.notifications-empty-content h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.notifications-empty-content p {
+  margin: 0;
+  font-size: 14px;
+}
+
 @media (max-width: 900px) {
   .notifications-page-top {
     flex-direction: column;
