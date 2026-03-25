@@ -43,7 +43,7 @@
   display: grid;
   grid-template-columns: 410px 1fr;
   gap: 22px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .profile-summary-card,
@@ -52,6 +52,7 @@
   border: 1px solid #d8e4e3;
   border-radius: 20px;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  height: 100%;
 }
 
 .profile-summary-card {
@@ -170,13 +171,13 @@
 }
 
 .profile-field-box {
-  height: 40px;
+  min-height: 40px;
   border: 1px solid #d8e4e3;
   border-radius: 12px;
   background: #f6fbfb;
   display: flex;
   align-items: center;
-  padding: 0 14px;
+  padding: 10px 14px;
   font-size: 14px;
   color: #0f172a;
 }
@@ -215,6 +216,16 @@
 .profile-tag.outline {
   background: #ffffff;
   border: 1px solid #d8e4e3;
+  color: #0f172a;
+}
+
+.profile-about-box {
+  border: 1px solid #d8e4e3;
+  border-radius: 12px;
+  background: #f6fbfb;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.55;
   color: #0f172a;
 }
 

@@ -8,11 +8,11 @@ import SignupPage from "../pages/public/SignupPage";
 
 import MessagesPage from "../pages/shared/MessagesPage";
 import NotificationsPage from "../pages/shared/NotificationsPage";
+import ProfilePage from "../pages/shared/ProfilePage";
 
 import StudentOverview from "../pages/student/StudentOverview";
 import FindBuddiesPage from "../pages/student/FindBuddiesPage";
 import AdaptationChecklistPage from "../pages/student/AdaptationChecklistPage";
-import ProfilePage from "../pages/student/ProfilePage";
 
 import BuddyOverviewPage from "../pages/buddy/BuddyOverviewPage";
 import MyBuddiesPage from "../pages/buddy/MyBuddiesPage";
@@ -35,10 +35,12 @@ function AppRoutes() {
       <Route path="/student/notifications" element={<NotificationsPage userType="student" />} />
       <Route path="/buddy/notifications" element={<NotificationsPage userType="buddy" />} />
 
+      <Route path="/student/profile" element={<ProfilePage userType="student" />} />
+      <Route path="/buddy/profile" element={<ProfilePage userType="buddy" />} />
+
       <Route path="/student/overview" element={<StudentOverview />} />
       <Route path="/student/find-buddies" element={<FindBuddiesPage />} />
       <Route path="/student/checklist" element={<AdaptationChecklistPage />}/>
-      <Route path="/student/profile" element={<ProfilePage />} />
       
       <Route path="/buddy/overview" element={<BuddyOverviewPage />} />
       <Route path="/buddy/my-buddies" element={<MyBuddiesPage />} />

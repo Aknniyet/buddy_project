@@ -1,9 +1,4 @@
-import { profileData, profileSectionIcons } from "../../constants/profileData";
-
-function ProfileInfoCard() {
-  const LanguagesIcon = profileSectionIcons.languages;
-  const InterestsIcon = profileSectionIcons.interests;
-
+function ProfileInfoCard({ profile }) {
   return (
     <div className="profile-info-card">
       <div className="profile-info-header">
@@ -12,56 +7,45 @@ function ProfileInfoCard() {
       </div>
 
       <div className="profile-info-grid">
-        <div className="profile-field">
-          <label>Full Name</label>
-          <div className="profile-field-box">{profileData.fullName}</div>
-        </div>
-
-        <div className="profile-field">
-          <label>Home Country</label>
-          <div className="profile-field-box">{profileData.homeCountry}</div>
-        </div>
-
-        <div className="profile-field">
-          <label>Current City</label>
-          <div className="profile-field-box">{profileData.currentCity}</div>
-        </div>
-
-        <div className="profile-field">
-          <label>Study Program</label>
-          <div className="profile-field-box">{profileData.studyProgram}</div>
-        </div>
+        {profile.fields.map((field) => (
+          <div className="profile-field" key={field.id}>
+            <label>{field.label}</label>
+            <div className="profile-field-box">{field.value}</div>
+          </div>
+        ))}
       </div>
 
-      <div className="profile-tags-section">
-        <div className="profile-tags-title">
-          <LanguagesIcon size={18} />
-          <span>Languages Spoken</span>
-        </div>
+      {profile.sections.map((section) => {
+        const Icon = section.icon;
 
-        <div className="profile-tags">
-          {profileData.languages.map((language) => (
-            <span className="profile-tag" key={language}>
-              {language}
-            </span>
-          ))}
-        </div>
-      </div>
+        return (
+          <div className="profile-tags-section" key={section.id}>
+            <div className="profile-tags-title">
+              <Icon size={18} />
+              <span>{section.title}</span>
+            </div>
 
-      <div className="profile-tags-section">
-        <div className="profile-tags-title">
-          <InterestsIcon size={18} />
-          <span>Hobbies & Interests</span>
-        </div>
-
-        <div className="profile-tags">
-          {profileData.interests.map((interest) => (
-            <span className="profile-tag outline" key={interest}>
-              {interest}
-            </span>
-          ))}
-        </div>
-      </div>
+            {section.type === "text" ? (
+              <div className="profile-about-box">{section.text}</div>
+            ) : (
+              <div className="profile-tags">
+                {section.items.map((item) => (
+                  <span
+                    className={
+                      section.type === "outline"
+                        ? "profile-tag outline"
+                        : "profile-tag"
+                    }
+                    key={item}
+                  >
+                    {item}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

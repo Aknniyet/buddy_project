@@ -1,22 +1,29 @@
 import { Bell } from "lucide-react";
 import { Link } from "react-router-dom";
 import { currentUser } from "../../constants/dashboardData";
+import { localCurrentUser } from "../../constants/localDashboardData";
 
-function DashboardTopbar({ title = "Overview" }) {
+function DashboardTopbar({ title = "Overview", sidebarType = "student" }) {
+  const notificationsPath =
+    sidebarType === "buddy"
+      ? "/buddy/notifications"
+      : "/student/notifications";
+
+  const user =
+    sidebarType === "buddy"
+      ? localCurrentUser
+      : currentUser;
+
   return (
     <header className="dashboard-topbar">
       <h2>{title}</h2>
 
       <div className="topbar-actions">
-        <Link to="/student/notifications" className="icon-button">
+        <Link to={notificationsPath} className="icon-button">
           <Bell size={20} />
         </Link>
 
-        <img
-          src={currentUser.avatar}
-          alt={currentUser.name}
-          className="topbar-avatar"
-        />
+        <img src={user.avatar} alt={user.name} className="topbar-avatar" />
       </div>
     </header>
   );
