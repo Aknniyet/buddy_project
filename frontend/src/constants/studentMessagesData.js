@@ -1,4 +1,4 @@
-export const conversations = [
+export const studentConversations = [
   {
     id: 1,
     name: "Arman Tulegenov",

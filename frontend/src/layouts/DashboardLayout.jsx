@@ -8,7 +8,7 @@ function DashboardLayout({ children, title, sidebarType = "student" }) {
       <DashboardSidebar sidebarType={sidebarType} />
 
       <div className="dashboard-main">
-        <DashboardTopbar title={title} />
+        <DashboardTopbar title={title} sidebarType={sidebarType} />
         <main className="dashboard-content">{children}</main>
       </div>
     </div>

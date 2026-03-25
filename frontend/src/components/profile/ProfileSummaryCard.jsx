@@ -1,26 +1,24 @@
-import { profileData, profileSummaryItems } from "../../constants/profileData";
-
-function ProfileSummaryCard() {
+function ProfileSummaryCard({ profile }) {
   return (
     <div className="profile-summary-card">
       <div className="profile-summary-top">
         <img
-          src={profileData.avatar}
-          alt={profileData.fullName}
+          src={profile.avatar}
+          alt={profile.fullName}
           className="profile-avatar"
         />
 
-        <h2>{profileData.fullName}</h2>
+        <h2>{profile.fullName}</h2>
 
-        <span className="profile-role-badge">{profileData.role}</span>
+        <span className="profile-role-badge">{profile.role}</span>
 
-        <p className="profile-email">{profileData.email}</p>
+        <p className="profile-email">{profile.email}</p>
       </div>
 
       <div className="profile-divider" />
 
       <div className="profile-summary-list">
-        {profileSummaryItems.map((item) => {
+        {profile.summaryItems.map((item) => {
           const Icon = item.icon;
 
           return (
