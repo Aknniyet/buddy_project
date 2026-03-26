@@ -5,7 +5,7 @@ function Navbar() {
   return (
     <header className="navbar">
       <div className="container navbar-content">
-        <div className="logo">BuddyConnect</div>
+        <div className="logo">KazakhBuddy</div>
 
         <nav className="nav-links">
           <NavLink to="/"  className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}> 

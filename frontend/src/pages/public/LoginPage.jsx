@@ -10,7 +10,7 @@ function LoginPage() {
           <div className="login-brand-icon">
             <Users size={22} />
           </div>
-          <h1>BuddyConnect</h1>
+          <h1>KazakhBuddy</h1>
         </Link>
 
         <div className="login-card">

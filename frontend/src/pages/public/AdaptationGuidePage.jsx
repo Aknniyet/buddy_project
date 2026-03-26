@@ -71,7 +71,7 @@ function AdaptationGuidePage() {
           <div className="container">
             <h2>Need Personalized Help?</h2>
             <p>
-              Sign up for BuddyConnect and get matched with a local Kazakh
+              Sign up for KazakhBuddy and get matched with a local Kazakh
               student who can guide you through each step of your adaptation
               journey.
             </p>

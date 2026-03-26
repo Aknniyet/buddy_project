@@ -1,16 +1,33 @@
 import PublicLayout from "../../layouts/PublicLayout";
 import "../../styles/home.css";
 import { Star } from "lucide-react";
-import { homeFeatures, homeSteps, homeTestimonials } from "../../constants/homeData";
+import { useNavigate } from "react-router-dom";
+import { homeFeatures, homeSteps, homeTestimonials, } from "../../constants/homeData";
 
 function HomePage() {
+  const navigate = useNavigate();
+
+  const handleInternationalSignup = () => {
+    navigate("/signup");
+  };
+
+  const handleBuddySignup = () => {
+    navigate("/signup");
+  };
+
+  const handleLearnMore = () => {
+    navigate("/about");
+  };
+
   return (
     <PublicLayout>
       <div className="home-page">
         <section className="hero-section">
           <div className="container hero-content">
             <div className="hero-left">
-              <div className="hero-badge">Connecting Students in Kazakhstan</div>
+              <div className="hero-badge">
+                Connecting Students in Kazakhstan
+              </div>
 
               <h1 className="hero-title">
                 Your Journey
@@ -19,14 +36,19 @@ function HomePage() {
               </h1>
 
               <p className="hero-description">
-                BuddyConnect helps international students adapt to university
+                KazakhBuddy helps international students adapt to university
                 life in Kazakhstan by connecting them with local student buddies
                 for guidance, support, and friendship.
               </p>
 
               <div className="hero-buttons">
-                <button className="primary-btn">Get Started</button>
-                <button className="secondary-btn">Learn More</button>
+                <button className="primary-btn" onClick={handleInternationalSignup}>
+                  Get Started
+                </button>
+
+                <button className="secondary-btn" onClick={handleLearnMore}>
+                  Learn More
+                </button>
               </div>
             </div>
 
@@ -65,7 +87,7 @@ function HomePage() {
             <div className="section-header">
               <h2>Everything You Need to Settle In</h2>
               <p>
-                BuddyConnect provides the tools and support that help students
+                KazakhBuddy provides the tools and support that help students
                 feel welcome, safe, and connected from the very beginning.
               </p>
             </div>
@@ -77,7 +99,7 @@ function HomePage() {
                 return (
                   <div className="feature-card" key={index}>
                     <div className="feature-icon">
-                      <Icon size={28} />
+                      <Icon size={24} />
                     </div>
 
                     <h3>{feature.title}</h3>
@@ -107,7 +129,7 @@ function HomePage() {
                   <div className="step-card" key={index}>
                     <div className="step-icon-wrapper">
                       <div className="step-icon">
-                        <Icon size={26} />
+                        <Icon size={22} />
                       </div>
 
                       <span className="step-number">{step.number}</span>
@@ -122,56 +144,22 @@ function HomePage() {
           </div>
         </section>
 
-        <section className="testimonials-section">
-          <div className="container">
-            <div className="section-header">
-              <h2>What Our Students Say</h2>
-              <p>
-                Hear from students who used BuddyConnect to make their first
-                months at university easier and more enjoyable.
-              </p>
-            </div>
-
-            <div className="testimonials-grid">
-              {homeTestimonials.map((item, index) => (
-                <div className="testimonial-card" key={index}>
-                  <div className="stars">
-                    <Star size={18} fill="currentColor" />
-                    <Star size={18} fill="currentColor" />
-                    <Star size={18} fill="currentColor" />
-                    <Star size={18} fill="currentColor" />
-                    <Star size={18} fill="currentColor" />
-                  </div>
-
-                  <p className="testimonial-text">“{item.text}”</p>
-
-                  <div className="testimonial-user">
-                    <div className="testimonial-avatar">
-                      {item.name.charAt(0)}
-                    </div>
-
-                    <div>
-                      <h4>{item.name}</h4>
-                      <p>{item.role}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
         <section className="cta-section">
           <div className="container cta-content">
             <h2>Ready to Find Your Buddy?</h2>
             <p>
-              Join BuddyConnect today and start building friendships that make
+              Join KazakhBuddy today and start building friendships that make
               your university journey easier, warmer, and more memorable.
             </p>
 
             <div className="cta-buttons">
-              <button className="cta-primary">I’m an International Student</button>
-              <button className="cta-secondary">I Want to Be a Buddy</button>
+              <button className="cta-primary" onClick={handleInternationalSignup}>
+                I’m an International Student
+              </button>
+
+              <button className="cta-secondary" onClick={handleBuddySignup}>
+                I Want to Be a Buddy
+              </button>
             </div>
           </div>
         </section>
