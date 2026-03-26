@@ -52,7 +52,7 @@ function SignupPage() {
           <div className="signup-brand-icon">
             <Users size={22} />
           </div>
-          <h1>BuddyConnect</h1>
+          <h1>KazakhBuddy</h1>
         </Link>
 
         <div className="signup-card">

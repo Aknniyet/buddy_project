@@ -25,7 +25,7 @@ function DashboardSidebar({ sidebarType = "student" }) {
           <div className="logo-icon">
             <Users size={18} />
           </div>
-          <span>BuddyConnect</span>
+          <span>KazakhBuddy</span>
         </Link>
 
         <nav className="sidebar-nav">

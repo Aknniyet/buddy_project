@@ -5,7 +5,7 @@ export const buddiesList = [
     city: "Almaty",
     program: "Computer Science",
     languages: "Kazakh, Russian, English",
-    bio: "Salam! I'm Aigerim, a 3rd year CS student at KBTU. I love helping international students discover Almaty and feel more confident during their first months here.",
+    bio: "Salem! I'm Aigerim, a 3rd year CS student at KBTU. I love helping international students discover Almaty and feel more confident during their first months here.",
     interests: ["Hiking", "Photography", "Cooking"],
     spotsAvailable: 3,
     avatar:

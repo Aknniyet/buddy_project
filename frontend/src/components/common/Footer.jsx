@@ -6,7 +6,7 @@ function Footer() {
       <div className="container footer-content">
 
         <div className="footer-column">
-          <h3>BuddyConnect</h3>
+          <h3>KazakhBuddy</h3>
           <p>
             Connecting international students with local buddies to make
             their transition to university life easier.
@@ -22,14 +22,14 @@ function Footer() {
 
         <div className="footer-column">
           <h4>Contact</h4>
-          <p>support@buddyconnect.kz</p>
-          <p>Almaty, Kazakhstan</p>
+          <p>support@kazakhbuddy.kz</p>
+          <p>Astana, Kazakhstan</p>
         </div>
 
       </div>
 
       <div className="footer-bottom">
-        © 2026 BuddyConnect. Made for international students.
+        © 2026 KazakhBuddy. Made for international students.
       </div>
     </footer>
   );
