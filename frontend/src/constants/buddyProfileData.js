@@ -4,8 +4,7 @@ export const buddyProfileData = {
   fullName: "Aigerim Serikova",
   role: "Local Student",
   email: "emma.schmidt@uni.edu",
-  avatar:
-    "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80",
+  avatar: "https://cdn-icons-png.flaticon.com/512/149/149071.png",
 
   summaryItems: [
     {

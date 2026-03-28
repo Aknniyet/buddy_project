@@ -121,6 +121,5 @@ export const currentUser = {
   name: "Yuki Tanaka",
   role: "International Student",
   initials: "YT",
-  avatar:
-    "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80",
+  avatar: "https://cdn-icons-png.flaticon.com/512/149/149071.png" ,
 };
