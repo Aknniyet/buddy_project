@@ -11,9 +11,11 @@ function SignupPage() {
     email: "",
     password: "",
     homeCountry: "",
+    city: "",
     studyProgram: "",
     languages: "",
     hobbies: "",
+    aboutYou: "",
   });
 
   const handleChange = (e) => {
@@ -85,10 +87,13 @@ function SignupPage() {
                     <p>Looking for a local buddy</p>
                   </button>
 
-                  <button type="button" className={`role-card ${
+                  <button
+                    type="button"
+                    className={`role-card ${
                       selectedRole === "local" ? "selected" : ""
                     }`}
-                    onClick={() => setSelectedRole("local")}>
+                    onClick={() => setSelectedRole("local")}
+                  >
                     <div className="role-icon">
                       <MapPin size={28} />
                     </div>
@@ -97,8 +102,11 @@ function SignupPage() {
                   </button>
                 </div>
 
-                <button type="button" className="signup-primary-btn full-width"
-                  onClick={handleNext}>
+                <button
+                  type="button"
+                  className="signup-primary-btn full-width"
+                  onClick={handleNext}
+                >
                   Continue
                   <ChevronRight size={18} />
                 </button>
@@ -113,7 +121,7 @@ function SignupPage() {
                     id="fullName"
                     name="fullName"
                     type="text"
-                    placeholder="John Doe"
+                    placeholder="Ivanov Ivan"
                     value={formData.fullName}
                     onChange={handleChange}
                   />
@@ -125,7 +133,7 @@ function SignupPage() {
                     id="email"
                     name="email"
                     type="email"
-                    placeholder="your.email@university.edu"
+                    placeholder="email@university.edu"
                     value={formData.email}
                     onChange={handleChange}
                   />
@@ -137,33 +145,55 @@ function SignupPage() {
                     id="password"
                     name="password"
                     type="password"
-                    placeholder="Create a strong password"
+                    placeholder="Create a password"
                     value={formData.password}
                     onChange={handleChange}
                   />
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="homeCountry">Home Country</label>
-                  <input
-                    id="homeCountry"
-                    name="homeCountry"
-                    type="text"
-                    placeholder="e.g., Japan, Brazil, India"
-                    value={formData.homeCountry}
-                    onChange={handleChange}
-                  />
-                </div>
+                {selectedRole === "international" && (
+                  <div className="form-group">
+                    <label htmlFor="homeCountry">Home Country</label>
+                    <input
+                      id="homeCountry"
+                      name="homeCountry"
+                      type="text"
+                      placeholder="e.g., Japan, Brazil, India"
+                      value={formData.homeCountry}
+                      onChange={handleChange}
+                    />
+                  </div>
+                )}
+
+                {selectedRole === "local" && (
+                  <div className="form-group">
+                    <label htmlFor="city">City</label>
+                    <input
+                      id="city"
+                      name="city"
+                      type="text"
+                      placeholder="e.g., Almaty, Astana, Shymkent"
+                      value={formData.city}
+                      onChange={handleChange}
+                    />
+                  </div>
+                )}
 
                 <div className="signup-buttons-row">
-                  <button type="button" className="signup-secondary-btn"
-                    onClick={handleBack}>
+                  <button
+                    type="button"
+                    className="signup-secondary-btn"
+                    onClick={handleBack}
+                  >
                     <ChevronLeft size={18} />
                     Back
                   </button>
 
-                  <button type="button" className="signup-primary-btn"
-                    onClick={handleNext}>
+                  <button
+                    type="button"
+                    className="signup-primary-btn"
+                    onClick={handleNext}
+                  >
                     Continue
                     <ChevronRight size={18} />
                   </button>
@@ -211,9 +241,26 @@ function SignupPage() {
                   <small>Separate with commas</small>
                 </div>
 
+                {selectedRole === "local" && (
+                  <div className="form-group">
+                    <label htmlFor="aboutYou">About You</label>
+                    <textarea
+                      id="aboutYou"
+                      name="aboutYou"
+                      rows="4"
+                      placeholder="Tell international students a bit about yourself..."
+                      value={formData.aboutYou}
+                      onChange={handleChange}
+                    />
+                  </div>
+                )}
+
                 <div className="signup-buttons-row">
-                  <button type="button" className="signup-secondary-btn"
-                    onClick={handleBack}>
+                  <button
+                    type="button"
+                    className="signup-secondary-btn"
+                    onClick={handleBack}
+                  >
                     <ChevronLeft size={18} />
                     Back
                   </button>

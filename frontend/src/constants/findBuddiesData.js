@@ -9,7 +9,7 @@ export const buddiesList = [
     interests: ["Hiking", "Photography", "Cooking"],
     spotsAvailable: 3,
     avatar:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80",
+      "https://cdn-icons-png.flaticon.com/512/149/149071.png",
   },
   {
     id: 2,
@@ -21,6 +21,6 @@ export const buddiesList = [
     interests: ["Yoga", "Reading", "Art Museums"],
     spotsAvailable: 2,
     avatar:
-      "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=120&q=80",
+      "https://cdn-icons-png.flaticon.com/512/149/149071.png",
   },
 ];

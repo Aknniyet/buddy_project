@@ -61,7 +61,7 @@ export const overviewCards = [
     name: "Arman Tulegenov",
     department: "Business Administration",
     avatar:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80",
+      "https://cdn-icons-png.flaticon.com/512/149/149071.png",
   },
   {
     id: 3,
@@ -99,21 +99,21 @@ export const recentMessages = [
     name: "Yuki Tanaka",
     text: "Hi Arman! Thanks for accepting my buddy request. I had some questions ab...",
     avatar:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80",
+      "https://cdn-icons-png.flaticon.com/512/149/149071.png",
   },
   {
     id: 2,
     name: "Arman Tulegenov",
     text: "Hey Yuki! Of course, happy to help. You'll need your passport and IIN to open...",
     avatar:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80",
+      "https://cdn-icons-png.flaticon.com/512/149/149071.png",
   },
   {
     id: 3,
     name: "Yuki Tanaka",
     text: "That would be great! How about Thursday afternoon?",
     avatar:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80",
+      "https://cdn-icons-png.flaticon.com/512/149/149071.png",
   },
 ];
 
@@ -121,6 +121,5 @@ export const currentUser = {
   name: "Yuki Tanaka",
   role: "International Student",
   initials: "YT",
-  avatar:
-    "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80",
+  avatar: "https://cdn-icons-png.flaticon.com/512/149/149071.png" ,
 };

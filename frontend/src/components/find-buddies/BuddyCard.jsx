@@ -1,10 +1,23 @@
-import { BookOpen, Globe, MapPin, MessageSquare } from "lucide-react";
+import {
+  BookOpen,
+  Globe,
+  MapPin,
+  MessageSquare,
+  CheckCircle2,
+} from "lucide-react";
 
-function BuddyCard({ buddy }) {
+function BuddyCard({ buddy, onConnect, hasBuddy, currentBuddy }) {
+  const isConnected = currentBuddy?.id === buddy.id;
+  const isUnavailable = hasBuddy && !isConnected;
+
   return (
     <article className="buddy-card">
       <div className="buddy-card-header">
-        <img src={buddy.avatar} alt={buddy.name} className="buddy-card-avatar" />
+        <img
+          src={buddy.avatar}
+          alt={buddy.name}
+          className="buddy-card-avatar"
+        />
 
         <div className="buddy-card-user-info">
           <h3>{buddy.name}</h3>
@@ -41,10 +54,24 @@ function BuddyCard({ buddy }) {
       <div className="buddy-card-footer">
         <p>{buddy.spotsAvailable} spots available</p>
 
-        <button className="connect-btn">
-          <MessageSquare size={16} />
-          <span>Connect</span>
-        </button>
+        {isConnected ? (
+          <button type="button" className="connect-btn connected-btn" disabled>
+            <CheckCircle2 size={16} />
+            <span>Connected</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="connect-btn"
+            onClick={() => {
+              if (!isUnavailable) onConnect(buddy);
+            }}
+            disabled={isUnavailable}
+          >
+            <MessageSquare size={16} />
+            <span>{isUnavailable ? "Unavailable" : "Connect"}</span>
+          </button>
+        )}
       </div>
     </article>
   );
