@@ -63,14 +63,6 @@
   padding: 0 6px;
 }
 
-.buddy-requests-card,
-.buddy-past-empty-card {
-  background: #fffdfd;
-  border: 1px solid #d8e4e3;
-  border-radius: 20px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-}
-
 .buddy-requests-list {
   display: flex;
   flex-direction: column;
@@ -213,12 +205,37 @@
   background: #fff5f5;
 }
 
+.request-status-badge {
+  height: 30px;
+  border-radius: 999px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.request-status-badge.accepted {
+  background: #22c55e;
+  color: white;
+}
+
+.request-status-badge.declined {
+  background: #ef4444;
+  color: white;
+}
+
 .buddy-past-empty-card {
-  min-height: 320px;
+  min-height: 280px;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
+  background: #fffdfd;
+  border: 1px solid #d8e4e3;
+  border-radius: 20px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .buddy-past-empty-content {
@@ -261,5 +278,9 @@
   .accept-btn {
     flex: 1;
     justify-content: center;
+  }
+
+  .request-status-badge {
+    align-self: flex-start;
   }
 }
