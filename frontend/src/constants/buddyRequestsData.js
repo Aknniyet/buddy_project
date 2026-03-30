@@ -1,4 +1,4 @@
-export const pendingBuddyRequests = [
+export const initialPendingBuddyRequests = [
   {
     id: 1,
     name: "Carlos Silva",
@@ -25,4 +25,4 @@ export const pendingBuddyRequests = [
   },
 ];
 
-export const pastBuddyRequests = [];
+export const initialPastBuddyRequests = [];

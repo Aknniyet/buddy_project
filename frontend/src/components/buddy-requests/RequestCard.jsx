@@ -1,6 +1,6 @@
 import { Globe, BookOpen, Clock3, Check, X } from "lucide-react";
 
-function RequestCard({ request, onAccept, onDecline }) {
+function RequestCard({ request, onAccept, onDecline, isPast = false }) {
   return (
     <div className="buddy-request-item">
       <div className="buddy-request-main">
@@ -43,25 +43,47 @@ function RequestCard({ request, onAccept, onDecline }) {
               <span>{request.date}</span>
             </div>
 
-            <div className="buddy-request-actions">
-              <button
-                type="button"
-                className="decline-btn"
-                onClick={() => onDecline(request.id)}
+            {isPast ? (
+              <div
+                className={
+                  request.status === "accepted"
+                    ? "request-status-badge accepted"
+                    : "request-status-badge declined"
+                }
               >
-                <X size={16} />
-                <span>Decline</span>
-              </button>
+                {request.status === "accepted" ? (
+                  <>
+                    <Check size={14} />
+                    <span>Accepted</span>
+                  </>
+                ) : (
+                  <>
+                    <X size={14} />
+                    <span>Declined</span>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="buddy-request-actions">
+                <button
+                  type="button"
+                  className="decline-btn"
+                  onClick={() => onDecline(request.id)}
+                >
+                  <X size={16} />
+                  <span>Decline</span>
+                </button>
 
-              <button
-                type="button"
-                className="accept-btn"
-                onClick={() => onAccept(request.id)}
-              >
-                <Check size={16} />
-                <span>Accept</span>
-              </button>
-            </div>
+                <button
+                  type="button"
+                  className="accept-btn"
+                  onClick={() => onAccept(request.id)}
+                >
+                  <Check size={16} />
+                  <span>Accept</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
