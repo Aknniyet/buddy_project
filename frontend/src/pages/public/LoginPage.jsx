@@ -25,7 +25,7 @@ function LoginPage() {
               <input
                 id="email"
                 type="email"
-                placeholder="your.email@university.edu"
+                placeholder="email@university.edu"
               />
             </div>
 

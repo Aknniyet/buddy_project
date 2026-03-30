@@ -90,7 +90,7 @@ export const localPendingRequests = [
     id: 1,
     name: "Carlos Silva",
     avatar:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80",
+      "https://cdn-icons-png.flaticon.com/512/149/149071.png",
     text: "Hi Aigerim! I'm Carlos from Brazil, studying Data Science. I'd love to connect and learn more about life in Almaty!",
   },
 ];

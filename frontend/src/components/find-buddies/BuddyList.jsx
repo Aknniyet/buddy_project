@@ -1,11 +1,30 @@
 import BuddyCard from "./BuddyCard";
-import { buddiesList } from "../../constants/findBuddiesData";
 
-function BuddyList() {
+function BuddyList({
+  buddies = [],
+  onConnect,
+  hasBuddy = false,
+  currentBuddy = null,
+}) {
+  if (buddies.length === 0) {
+    return (
+      <div className="buddy-empty-state">
+        <h3>No buddies found</h3>
+        <p>Try searching with different keywords.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="buddy-grid">
-      {buddiesList.map((buddy) => (
-        <BuddyCard key={buddy.id} buddy={buddy} />
+      {buddies.map((buddy) => (
+        <BuddyCard
+          key={buddy.id}
+          buddy={buddy}
+          onConnect={onConnect}
+          hasBuddy={hasBuddy}
+          currentBuddy={currentBuddy}
+        />
       ))}
     </div>
   );
