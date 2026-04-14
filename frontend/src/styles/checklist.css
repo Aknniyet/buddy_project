@@ -307,3 +307,22 @@
     padding: 12px;
   }
 }
+
+.checklist-task {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.task-action-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #09979a;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+
+.checklist-task.completed .task-content p {
+  text-decoration: line-through;
+  opacity: 0.8;
+}

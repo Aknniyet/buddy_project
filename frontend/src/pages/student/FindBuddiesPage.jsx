@@ -1,61 +1,57 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import SearchBar from "../../components/find-buddies/SearchBar";
 import BuddyAlert from "../../components/find-buddies/BuddyAlert";
 import BuddyList from "../../components/find-buddies/BuddyList";
 import BuddyRequestModal from "../../components/find-buddies/BuddyRequestModal";
-import { buddiesList } from "../../constants/findBuddiesData";
+import { apiRequest } from "../../lib/api";
 import "../../styles/find-buddies.css";
 
 function FindBuddiesPage() {
   const [searchValue, setSearchValue] = useState("");
   const [selectedBuddy, setSelectedBuddy] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentBuddy, setCurrentBuddy] = useState(null);
+  const [buddies, setBuddies] = useState([]);
+  const [alertMessage, setAlertMessage] = useState("");
+
+  const loadBuddies = async () => {
+    try {
+      const data = await apiRequest("/buddy/available");
+      setBuddies(data);
+    } catch (error) {
+      setAlertMessage(error.message);
+    }
+  };
+
+  useEffect(() => {
+    loadBuddies();
+  }, []);
 
   const filteredBuddies = useMemo(() => {
     const query = searchValue.trim().toLowerCase();
+    if (!query) return buddies;
 
-    if (!query) return buddiesList;
-
-    return buddiesList.filter((buddy) => {
-      const searchableText = [
-        buddy.name,
-        buddy.city,
-        buddy.program,
-        buddy.languages,
-        buddy.bio,
-        ...(buddy.interests || []),
-      ]
+    return buddies.filter((buddy) =>
+      [buddy.name, buddy.city, buddy.program, buddy.languages, buddy.bio, ...(buddy.interests || [])]
         .join(" ")
-        .toLowerCase();
+        .toLowerCase()
+        .includes(query)
+    );
+  }, [buddies, searchValue]);
 
-      return searchableText.includes(query);
-    });
-  }, [searchValue]);
-
-  const handleOpenModal = (buddy) => {
-    if (currentBuddy) return;
-
-    setSelectedBuddy(buddy);
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setSelectedBuddy(null);
-    setIsModalOpen(false);
-  };
-
-  const handleSendRequest = (data) => {
-    console.log("Buddy request sent:", data);
-
-    const matchedBuddy = buddiesList.find((buddy) => buddy.id === data.buddyId);
-
-    if (matchedBuddy) {
-      setCurrentBuddy(matchedBuddy);
+  const handleSendRequest = async (data) => {
+    try {
+      const response = await apiRequest("/buddy/requests", {
+        method: "POST",
+        body: JSON.stringify({ buddyId: data.buddyId, message: data.message }),
+      });
+      setAlertMessage(response.message);
+      setIsModalOpen(false);
+      setSelectedBuddy(null);
+      await loadBuddies();
+    } catch (error) {
+      setAlertMessage(error.message);
     }
-
-    handleCloseModal();
   };
 
   return (
@@ -63,29 +59,12 @@ function FindBuddiesPage() {
       <section className="find-buddies-page">
         <div className="find-buddies-header">
           <h1>Find a Buddy</h1>
-          <p>Browse local students who want to help you adapt</p>
+          <p>Browse approved buddies sorted by compatibility score.</p>
         </div>
-
-        <SearchBar
-          searchValue={searchValue}
-          onSearchChange={setSearchValue}
-        />
-
-        {currentBuddy && <BuddyAlert buddyName={currentBuddy.name} />}
-
-        <BuddyList
-          buddies={filteredBuddies}
-          onConnect={handleOpenModal}
-          hasBuddy={!!currentBuddy}
-          currentBuddy={currentBuddy}
-        />
-
-        <BuddyRequestModal
-          buddy={selectedBuddy}
-          isOpen={isModalOpen}
-          onClose={handleCloseModal}
-          onSend={handleSendRequest}
-        />
+        <SearchBar searchValue={searchValue} onSearchChange={setSearchValue} />
+        <BuddyAlert message={alertMessage} />
+        <BuddyList buddies={filteredBuddies} searchValue={searchValue} onConnect={(buddy) => { setSelectedBuddy(buddy); setIsModalOpen(true); }} />
+        <BuddyRequestModal buddy={selectedBuddy} isOpen={isModalOpen} onClose={() => { setSelectedBuddy(null); setIsModalOpen(false); }} onSend={handleSendRequest} />
       </section>
     </DashboardLayout>
   );

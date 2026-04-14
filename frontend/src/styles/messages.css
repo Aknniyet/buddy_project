@@ -303,3 +303,21 @@
     min-height: auto;
   }
 }
+
+.send-button {
+  transition: background 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
+}
+
+.send-button:disabled {
+  background: #c8d9da;
+  cursor: not-allowed;
+}
+
+.send-button.active {
+  background: #09979a;
+}
+
+.send-button.active:hover {
+  background: #087f82;
+  transform: translateY(-1px);
+}

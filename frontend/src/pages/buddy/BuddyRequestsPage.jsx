@@ -1,58 +1,32 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import RequestsTabs from "../../components/buddy-requests/RequestsTabs";
 import RequestCard from "../../components/buddy-requests/RequestCard";
 import PastRequestsEmptyState from "../../components/buddy-requests/PastRequestsEmptyState";
-import {
-  initialPendingBuddyRequests,
-  initialPastBuddyRequests,
-} from "../../constants/buddyRequestsData";
+import { apiRequest } from "../../lib/api";
 import "../../styles/buddy-requests.css";
 
 function BuddyRequestsPage() {
   const [activeTab, setActiveTab] = useState("pending");
-  const [pendingRequests, setPendingRequests] = useState(
-    initialPendingBuddyRequests
-  );
-  const [pastRequests, setPastRequests] = useState(initialPastBuddyRequests);
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [pastRequests, setPastRequests] = useState([]);
 
-  const handleAccept = (requestId) => {
-    const selectedRequest = pendingRequests.find(
-      (request) => request.id === requestId
-    );
-
-    if (!selectedRequest) return;
-
-    const updatedRequest = {
-      ...selectedRequest,
-      status: "accepted",
-    };
-
-    setPendingRequests((prev) =>
-      prev.filter((request) => request.id !== requestId)
-    );
-
-    setPastRequests((prev) => [updatedRequest, ...prev]);
-    setActiveTab("past");
+  const loadRequests = async () => {
+    const data = await apiRequest("/buddy/requests/incoming");
+    setPendingRequests(data.pending || []);
+    setPastRequests(data.past || []);
   };
 
-  const handleDecline = (requestId) => {
-    const selectedRequest = pendingRequests.find(
-      (request) => request.id === requestId
-    );
+  useEffect(() => {
+    loadRequests().catch(() => null);
+  }, []);
 
-    if (!selectedRequest) return;
-
-    const updatedRequest = {
-      ...selectedRequest,
-      status: "declined",
-    };
-
-    setPendingRequests((prev) =>
-      prev.filter((request) => request.id !== requestId)
-    );
-
-    setPastRequests((prev) => [updatedRequest, ...prev]);
+  const handleRespond = async (requestId, action) => {
+    await apiRequest(`/buddy/requests/${requestId}/respond`, {
+      method: "PATCH",
+      body: JSON.stringify({ action }),
+    });
+    await loadRequests();
     setActiveTab("past");
   };
 
@@ -61,46 +35,24 @@ function BuddyRequestsPage() {
       <section className="buddy-requests-page">
         <div className="buddy-requests-header">
           <h1>Buddy Requests</h1>
-          <p>
-            Review and respond to connection requests from international students
-          </p>
+          <p>Review and respond to connection requests from international students.</p>
         </div>
 
-        <RequestsTabs
-          activeTab={activeTab}
-          onChangeTab={setActiveTab}
-          pendingCount={pendingRequests.length}
-        />
+        <RequestsTabs activeTab={activeTab} onChangeTab={setActiveTab} pendingCount={pendingRequests.length} />
 
         {activeTab === "pending" ? (
           pendingRequests.length > 0 ? (
             <div className="buddy-requests-list">
               {pendingRequests.map((request) => (
-                <RequestCard
-                  key={request.id}
-                  request={request}
-                  onAccept={handleAccept}
-                  onDecline={handleDecline}
-                />
+                <RequestCard key={request.id} request={request} onAccept={() => handleRespond(request.id, "accept")} onDecline={() => handleRespond(request.id, "decline")} />
               ))}
             </div>
           ) : (
-            <div className="buddy-past-empty-card">
-              <div className="buddy-past-empty-content">
-                <h3>No pending requests</h3>
-                <p>New buddy requests will appear here.</p>
-              </div>
-            </div>
+            <div className="buddy-past-empty-card"><div className="buddy-past-empty-content"><h3>No pending requests</h3><p>New buddy requests will appear here.</p></div></div>
           )
         ) : pastRequests.length > 0 ? (
           <div className="buddy-requests-list">
-            {pastRequests.map((request) => (
-              <RequestCard
-                key={request.id}
-                request={request}
-                isPast={true}
-              />
-            ))}
+            {pastRequests.map((request) => <RequestCard key={request.id} request={request} isPast={true} />)}
           </div>
         ) : (
           <PastRequestsEmptyState />
