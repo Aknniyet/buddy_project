@@ -1,20 +1,27 @@
 import { NavLink, Link, useNavigate } from "react-router-dom";
 import { LogOut, Users } from "lucide-react";
-import { sidebarLinks, currentUser } from "../../constants/dashboardData";
-import {
-  localSidebarLinks,
-  localCurrentUser,
-} from "../../constants/localDashboardData";
+import { sidebarLinks } from "../../constants/dashboardData";
+import { localSidebarLinks } from "../../constants/localDashboardData";
+import { useAuth } from "../../context/AuthContext";
 
 function DashboardSidebar({ sidebarType = "student" }) {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   const links = sidebarType === "buddy" ? localSidebarLinks : sidebarLinks;
-  const user = sidebarType === "buddy" ? localCurrentUser : currentUser;
+
+  const displayName = user?.full_name || user?.name || "User";
+  const initials = displayName
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  const roleLabel = user?.role === "local" ? "Buddy" : user?.role === "international" ? "International Student" : "Admin";
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    logout();
     navigate("/login");
   };
 
@@ -22,24 +29,14 @@ function DashboardSidebar({ sidebarType = "student" }) {
     <aside className="dashboard-sidebar">
       <div>
         <Link to="/" className="sidebar-logo">
-          <div className="logo-icon">
-            <Users size={18} />
-          </div>
+          <div className="logo-icon"><Users size={18} /></div>
           <span>KazakhBuddy</span>
         </Link>
-
         <nav className="sidebar-nav">
           {links.map((item) => {
             const Icon = item.icon;
-
             return (
-              <NavLink
-                key={item.id}
-                to={item.path}
-                className={({ isActive }) =>
-                  isActive ? "sidebar-link active" : "sidebar-link"
-                }
-              >
+              <NavLink key={item.id} to={item.path} className={({ isActive }) => (isActive ? "sidebar-link active" : "sidebar-link")}>
                 <Icon size={20} />
                 <span>{item.label}</span>
               </NavLink>
@@ -47,16 +44,14 @@ function DashboardSidebar({ sidebarType = "student" }) {
           })}
         </nav>
       </div>
-
       <div className="sidebar-bottom">
         <div className="sidebar-user">
-          <div className="sidebar-user-avatar">{user.initials}</div>
+          <div className="sidebar-user-avatar">{initials}</div>
           <div>
-            <h4>{user.name}</h4>
-            <p>{user.role}</p>
+            <h4>{displayName}</h4>
+            <p>{roleLabel}</p>
           </div>
         </div>
-
         <button className="logout-button" onClick={handleLogout}>
           <LogOut size={18} />
           <span>Log out</span>

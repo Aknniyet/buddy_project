@@ -4,13 +4,7 @@ function NotificationItem({ notification, onMarkRead, onDelete }) {
   const Icon = notification.icon;
 
   return (
-    <div
-      className={
-        notification.read
-          ? "notification-item"
-          : "notification-item unread"
-      }
-    >
+    <div className={notification.read ? "notification-item" : "notification-item unread"}>
       <div className="notification-left">
         <div className="notification-icon">
           <Icon size={20} />
@@ -21,26 +15,14 @@ function NotificationItem({ notification, onMarkRead, onDelete }) {
           <p>{notification.description}</p>
 
           <div className="notification-actions">
-            <button type="button" className="notification-link primary">
-              View details
-            </button>
-
             {!notification.read && (
-              <button
-                type="button"
-                className="notification-link"
-                onClick={() => onMarkRead(notification.id)}
-              >
+              <button type="button" className="notification-link primary" onClick={() => onMarkRead(notification.id)}>
                 <Check size={16} />
                 <span>Mark as read</span>
               </button>
             )}
 
-            <button
-              type="button"
-              className="notification-link"
-              onClick={() => onDelete(notification.id)}
-            >
+            <button type="button" className="notification-link" onClick={() => onDelete(notification.id)}>
               <Trash2 size={16} />
               <span>Delete</span>
             </button>

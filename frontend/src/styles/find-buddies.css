@@ -412,3 +412,30 @@
     font-size: 15px;
   }
 }
+
+.buddy-alert {
+  min-height: unset;
+  padding: 14px 18px;
+  align-items: flex-start;
+}
+
+.buddy-alert strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.buddy-alert p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.buddy-empty-state.centered {
+  max-width: none;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin-top: 8px;
+}

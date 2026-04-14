@@ -283,3 +283,26 @@
     grid-template-columns: 1fr;
   }
 }
+
+.signup-select {
+  height: 48px;
+  border: 1px solid #d7e2e2;
+  border-radius: 12px;
+  padding: 0 14px;
+  font-size: 15px;
+  outline: none;
+  appearance: none;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbfb 100%);
+  color: #111827;
+}
+
+.signup-select:focus {
+  border-color: #0f9aa8;
+  box-shadow: 0 0 0 3px rgba(15, 154, 168, 0.12);
+}
+
+.signup-error-text {
+  color: #dc2626;
+  margin: 0;
+  font-size: 14px;
+}
