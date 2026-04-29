@@ -5,182 +5,401 @@ import {
   Heart,
   Bus,
   Users,
+  School,
 } from "lucide-react";
 
 export const quickTips = [
-    "Save emergency numbers: Police (102), Ambulance (103), Fire (101), Unified (112)",
-    "Download 2GIS for offline maps — it's the most accurate navigation app in Kazakhstan",
-    "Get Kaspi.kz app — it's essential for payments, transfers, and shopping",
-    "Join your university's student Telegram groups for news and events",
-    "Keep digital copies of your passport, visa, and IIN in cloud storage",
-    "Learn basic Kazakh/Russian phrases — people really appreciate the effort",
-    "Download Yandex Go for affordable taxi rides anywhere in the city",
+  "guide.quickTips.tip1",
+  "guide.quickTips.tip2",
+  "guide.quickTips.tip3",
+  "guide.quickTips.tip4",
+  "guide.quickTips.tip5",
+  "guide.quickTips.tip6",
+  "guide.quickTips.tip7",
 ];
 
 export const guideSections = [
   {
       icon: FileText,
-      title: "Documents & Registration",
-      subtitle:
-        "Essential paperwork to complete within your first days in Kazakhstan.",
+      titleKey: "guide.sections.documents.title",
+      subtitleKey: "guide.sections.documents.subtitle",
       items: [
         {
-          title: "Migration Registration",
-          content:
-            "You must register at the migration police within 3 business days of arrival. Most universities handle this for international students through the international office. Bring your passport, visa, and enrollment documents.",
+          titleKey: "guide.sections.documents.items.migrationRegistration.title",
+          contentKey: "guide.sections.documents.items.migrationRegistration.content",
+          links: [
+            {
+              label: "AITU International Office",
+              url: "https://int.astanait.edu.kz/",
+            },
+            {
+              label: "AITU International Relations",
+              url: "https://astanait.edu.kz/en/international-partners/",
+            },
+          ],
         },
         {
-          title: "IIN (Individual Identification Number)",
-          content:
-            "The IIN is very important in Kazakhstan. You need it to open a bank account, use some digital services, and complete official procedures. Ask your university or local buddy for help with the application process.",
+          titleKey: "guide.sections.documents.items.iin.title",
+          contentKey: "guide.sections.documents.items.iin.content",
+          links: [
+            {
+              label: "eGov: IIN for Foreigners",
+              url: "https://egov.kz/cms/en/services/for_foreigners/pass011_mvd",
+            },
+            {
+              label: "Gov.kz: Obtaining IIN for Non-residents",
+              url: "https://www.gov.kz/situations/497/1150?lang=en",
+            },
+          ],
         },
         {
-          title: "Student ID Card",
-          content:
-            "Your university will usually provide a student ID after enrollment is confirmed. Keep it with you because you may need it for dormitory access, campus entry, and student discounts.",
+          titleKey: "guide.sections.documents.items.studentId.title",
+          contentKey: "guide.sections.documents.items.studentId.content",
+          links: [
+            {
+              label: "AITU Study Process",
+              url: "https://astanait.edu.kz/en/study-at-aitu/",
+            },
+          ],
         },
         {
-          title: "Residence Permit (for long stays)",
-          content:
-            "If you plan to stay in Kazakhstan long-term, ask your university or migration office whether you need a residence permit or visa extension. Requirements may depend on your citizenship and program duration.",
+          titleKey: "guide.sections.documents.items.residencePermit.title",
+          contentKey: "guide.sections.documents.items.residencePermit.content",
+          links: [
+            {
+              label: "AITU International Office",
+              url: "https://int.astanait.edu.kz/",
+            },
+          ],
         },
       ],
     },
     {
       icon: House,
-      title: "Housing & Accommodation",
-      subtitle: "Setting up your new home in Kazakhstan.",
+      titleKey: "guide.sections.housing.title",
+      subtitleKey: "guide.sections.housing.subtitle",
       items: [
         {
-          title: "University Dormitory",
-          content:
-            "Many universities offer dormitories for international students. Apply as early as possible, because places may be limited. Ask about payment, facilities, rules, and room equipment before moving in.",
+          titleKey: "guide.sections.housing.items.dormitory.title",
+          contentKey: "guide.sections.housing.items.dormitory.content",
+          links: [
+            {
+              label: "AITU Student House",
+              url: "https://astanait.edu.kz/en/students-dormitory/",
+            },
+          ],
         },
         {
-          title: "Renting an Apartment",
-          content:
-            "If you choose private housing, use trusted services and never send money before seeing the apartment. Check location, transport access, internet, heating, and whether utility bills are included.",
+          titleKey: "guide.sections.housing.items.renting.title",
+          contentKey: "guide.sections.housing.items.renting.content",
+          links: [
+            {
+              label: "2GIS: Check Area and Routes",
+              url: "https://2gis.kz/",
+            },
+          ],
         },
         {
-          title: "SIM Card & Internet",
-          content:
-            "Get a local SIM card from Kcell, Beeline, Tele2, or Altel. You'll need your passport. Mobile data plans are affordable, and many students also install home Wi-Fi in rented apartments.",
+          titleKey: "guide.sections.housing.items.simCard.title",
+          contentKey: "guide.sections.housing.items.simCard.content",
+          links: [
+            {
+              label: "Kcell",
+              url: "https://www.kcell.kz/",
+            },
+            {
+              label: "Beeline Kazakhstan",
+              url: "https://beeline.kz/",
+            },
+            {
+              label: "Tele2 Kazakhstan",
+              url: "https://tele2.kz/",
+            },
+            {
+              label: "Altel",
+              url: "https://altel.kz/",
+            },
+          ],
         },
         {
-          title: "Essential Apps to Download",
-          content:
-            "Useful apps include 2GIS for maps, Yandex Go for taxis, Kaspi.kz for payments, Telegram for student groups, and your university's internal apps or portals.",
+          titleKey: "guide.sections.housing.items.apps.title",
+          contentKey: "guide.sections.housing.items.apps.content",
+          links: [
+            {
+              label: "2GIS",
+              url: "https://2gis.kz/",
+            },
+            {
+              label: "Yandex Go",
+              url: "https://go.yandex.com/",
+            },
+            {
+              label: "Kaspi.kz",
+              url: "https://kaspi.kz/",
+            },
+            {
+              label: "Telegram",
+              url: "https://telegram.org/",
+            },
+          ],
         },
       ],
     },
     {
       icon: Landmark,
-      title: "Banking & Finances",
-      subtitle: "Managing your money in Kazakhstan.",
+      titleKey: "guide.sections.banking.title",
+      subtitleKey: "guide.sections.banking.subtitle",
       items: [
         {
-          title: "Kaspi Bank (recommended)",
-          content:
-            "Kaspi Bank is one of the most popular banks in Kazakhstan. The Kaspi app lets you pay by QR code, transfer money instantly, shop online, and pay utility bills. You'll usually need your passport and IIN to open an account.",
+          titleKey: "guide.sections.banking.items.kaspi.title",
+          contentKey: "guide.sections.banking.items.kaspi.content",
+          links: [
+            {
+              label: "Kaspi.kz",
+              url: "https://kaspi.kz/",
+            },
+          ],
         },
         {
-          title: "Halyk Bank",
-          content:
-            "Halyk Bank is another reliable option. Some students prefer it for traditional banking services. Compare card fees, mobile app convenience, and branch access before deciding.",
+          titleKey: "guide.sections.banking.items.halyk.title",
+          contentKey: "guide.sections.banking.items.halyk.content",
+          links: [
+            {
+              label: "Halyk Bank",
+              url: "https://halykbank.kz/",
+            },
+          ],
         },
         {
-          title: "Currency & Costs",
-          content:
-            "The local currency is the Kazakhstani tenge (KZT). Track your first month's spending carefully, especially on food, transport, rent, mobile data, and study materials.",
+          titleKey: "guide.sections.banking.items.currency.title",
+          contentKey: "guide.sections.banking.items.currency.content",
+          links: [
+            {
+              label: "National Bank of Kazakhstan",
+              url: "https://nationalbank.kz/en",
+            },
+          ],
         },
         {
-          title: "Student Discounts",
-          content:
-            "Always ask whether student discounts are available for transport, museums, events, and university-related services. Your student ID may help you save money.",
+          titleKey: "guide.sections.banking.items.discounts.title",
+          contentKey: "guide.sections.banking.items.discounts.content",
         },
       ],
     },
     {
       icon: Heart,
-      title: "Healthcare",
-      subtitle: "Staying healthy and accessing medical services in Kazakhstan.",
+      titleKey: "guide.sections.healthcare.title",
+      subtitleKey: "guide.sections.healthcare.subtitle",
       items: [
         {
-          title: "Health Insurance",
-          content:
-            "Check whether your university provides insurance or requires you to buy your own. Keep a digital and printed copy of your insurance documents with you.",
+          titleKey: "guide.sections.healthcare.items.insurance.title",
+          contentKey: "guide.sections.healthcare.items.insurance.content",
+          links: [
+            {
+              label: "AITU International Office",
+              url: "https://int.astanait.edu.kz/",
+            },
+          ],
         },
         {
-          title: "Polyclinics & Hospitals",
-          content:
-            "Ask your university which clinic or hospital international students usually visit. Some institutions have partner clinics. Knowing where to go before you get sick is very helpful.",
+          titleKey: "guide.sections.healthcare.items.clinics.title",
+          contentKey: "guide.sections.healthcare.items.clinics.content",
+          links: [
+            {
+              label: "2GIS: Clinics and Pharmacies",
+              url: "https://2gis.kz/",
+            },
+          ],
         },
         {
-          title: "Pharmacies",
-          content:
-            "Pharmacies are easy to find in most cities. Basic medicine is widely available, but for some items you may need a prescription. Learn the nearest pharmacy to your dorm or apartment.",
+          titleKey: "guide.sections.healthcare.items.pharmacies.title",
+          contentKey: "guide.sections.healthcare.items.pharmacies.content",
+          links: [
+            {
+              label: "2GIS: Nearest Pharmacies",
+              url: "https://2gis.kz/",
+            },
+          ],
         },
         {
-          title: "Emergency Services",
-          content:
-            "In emergencies call 103 for ambulance or 112 for the general emergency line. Save these numbers in your phone on your first day.",
+          titleKey: "guide.sections.healthcare.items.emergency.title",
+          contentKey: "guide.sections.healthcare.items.emergency.content",
+          links: [
+            {
+              label: "eGov: Emergency Number 112",
+              url: "https://egov.kz/cms/en/articles/emergency_situations/emergency_number_112",
+            },
+            {
+              label: "Ministry of Emergency Situations",
+              url: "https://www.gov.kz/memleket/entities/emer?lang=en",
+            },
+          ],
         },
       ],
     },
     {
       icon: Bus,
-      title: "Transportation",
-      subtitle: "Getting around Kazakhstan.",
+      titleKey: "guide.sections.transportation.title",
+      subtitleKey: "guide.sections.transportation.subtitle",
       items: [
         {
-          title: "Public Transport",
-          content:
-            "Most big cities have buses, and some have metro systems. Ask your buddy how to buy or top up a transport card in your city. Apps like 2GIS help you plan routes.",
+          titleKey: "guide.sections.transportation.items.publicTransport.title",
+          contentKey: "guide.sections.transportation.items.publicTransport.content",
+          links: [
+            {
+              label: "2GIS: Public Transport Routes",
+              url: "https://2gis.kz/",
+            },
+          ],
         },
         {
-          title: "Taxis (Yandex Go & inDrive)",
-          content:
-            "Taxi apps are very popular and often affordable. Use official apps instead of random street taxis. Always check the driver and car details before entering.",
+          titleKey: "guide.sections.transportation.items.taxis.title",
+          contentKey: "guide.sections.transportation.items.taxis.content",
+          links: [
+            {
+              label: "Yandex Go",
+              url: "https://go.yandex.com/",
+            },
+            {
+              label: "inDrive",
+              url: "https://indrive.com/",
+            },
+          ],
         },
         {
-          title: "Intercity Travel",
-          content:
-            "You can travel between cities by train, bus, or airplane. Buy tickets from official websites or trusted apps. Keep your passport with you during travel.",
+          titleKey: "guide.sections.transportation.items.intercity.title",
+          contentKey: "guide.sections.transportation.items.intercity.content",
+          links: [
+            {
+              label: "Kazakhstan Railways",
+              url: "https://railways.kz/",
+            },
+            {
+              label: "Air Astana",
+              url: "https://airastana.com/",
+            },
+          ],
         },
         {
-          title: "2GIS Navigation",
-          content:
-            "2GIS is one of the best apps for navigation in Kazakhstan. It shows routes, shops, pharmacies, and important city services very clearly.",
+          titleKey: "guide.sections.transportation.items.navigation.title",
+          contentKey: "guide.sections.transportation.items.navigation.content",
+          links: [
+            {
+              label: "2GIS",
+              url: "https://2gis.kz/",
+            },
+          ],
         },
       ],
     },
     {
       icon: Users,
-      title: "Social Life & Culture",
-      subtitle: "Making friends and adapting to Kazakh culture.",
+      titleKey: "guide.sections.socialLife.title",
+      subtitleKey: "guide.sections.socialLife.subtitle",
       items: [
         {
-          title: "Telegram Groups",
-          content:
-            "Student groups on Telegram are very important for university life. You'll find announcements, events, housing offers, and everyday advice there.",
+          titleKey: "guide.sections.socialLife.items.telegram.title",
+          contentKey: "guide.sections.socialLife.items.telegram.content",
+          links: [
+            {
+              label: "Telegram",
+              url: "https://telegram.org/",
+            },
+          ],
         },
         {
-          title: "Kazakh Hospitality",
-          content:
-            "Kazakh culture is known for hospitality. Be open, polite, and curious. Accepting invitations respectfully and showing interest in local culture helps a lot.",
+          titleKey: "guide.sections.socialLife.items.hospitality.title",
+          contentKey: "guide.sections.socialLife.items.hospitality.content",
         },
         {
-          title: "Student Clubs & Events",
-          content:
-            "Join clubs, campus activities, and language exchange events. These are the easiest ways to meet new people and practice communication.",
+          titleKey: "guide.sections.socialLife.items.clubs.title",
+          contentKey: "guide.sections.socialLife.items.clubs.content",
+          links: [
+            {
+              label: "AITU Official Website",
+              url: "https://astanait.edu.kz/en/",
+            },
+          ],
         },
         {
-          title: "Language Tips",
-          content:
-            "Even a few phrases in Kazakh or Russian can make daily life easier. Learn greetings, polite expressions, and simple transport or shopping phrases.",
+          titleKey: "guide.sections.socialLife.items.languageTips.title",
+          contentKey: "guide.sections.socialLife.items.languageTips.content",
         },
       ],
     },
-
-    
+    {
+      icon: FileText,
+      titleKey: "guide.sections.academicCalendar.title",
+      subtitleKey: "guide.sections.academicCalendar.subtitle",
+      items: [
+        {
+          titleKey: "guide.sections.academicCalendar.items.year1.title",
+          contentKey: "guide.sections.academicCalendar.items.year1.content",
+          link: "/pdfs/calendar-year1.pdf",
+          links: [
+            {
+              label: "AITU Academic Calendar",
+              url: "https://astanait.edu.kz/en/academic-calendar/",
+            },
+          ],
+        },
+        {
+          titleKey: "guide.sections.academicCalendar.items.year2.title",
+          contentKey: "guide.sections.academicCalendar.items.year2.content",
+          link: "/pdfs/calendar-year2.pdf",
+          links: [
+            {
+              label: "AITU Academic Calendar",
+              url: "https://astanait.edu.kz/en/academic-calendar/",
+            },
+          ],
+        },
+        {
+          titleKey: "guide.sections.academicCalendar.items.year3.title",
+          contentKey: "guide.sections.academicCalendar.items.year3.content",
+          link: "/pdfs/calendar-year3.pdf",
+          links: [
+            {
+              label: "AITU Academic Calendar",
+              url: "https://astanait.edu.kz/en/academic-calendar/",
+            },
+          ],
+        },
+      ],
+    },
+    {
+      icon: School,
+      titleKey: "guide.sections.universityLife.title",
+      subtitleKey: "guide.sections.universityLife.subtitle",
+      items: [
+        {
+          titleKey: "guide.sections.universityLife.items.deansOffice.title",
+          contentKey: "guide.sections.universityLife.items.deansOffice.content",
+          links: [
+            {
+              label: "AITU Academic Department",
+              url: "https://astanait.edu.kz/en/academic-department",
+            },
+            {
+              label: "AITU Organizational Structure",
+              url: "https://astanait.edu.kz/en/orgstructure-of-uni/",
+            },
+          ],
+        },
+        {
+          titleKey: "guide.sections.universityLife.items.portal.title",
+          contentKey: "guide.sections.universityLife.items.portal.content",
+          links: [
+            {
+              label: "LMS Moodle",
+              url: "https://lms.astanait.edu.kz/",
+            },
+            {
+              label: "DU",
+              url: "https://du.astanait.edu.kz/",
+            },
+          ],
+        },
+      ],
+    },
 ];
