@@ -7,9 +7,13 @@ import "../../styles/local-dashboard.css";
 function BuddyOverviewPage() {
   const { user } = useAuth();
   const [dashboard, setDashboard] = useState({ activeStudents: 0, pendingRequests: 0, unreadMessages: 0, maxStudents: 3 });
+  const [events, setEvents] = useState([]);
 
   useEffect(() => {
     apiRequest("/dashboard/buddy").then(setDashboard).catch(() => null);
+    apiRequest("/events")
+      .then((data) => setEvents((Array.isArray(data) ? data : []).slice(0, 2)))
+      .catch(() => null);
   }, []);
 
   return (
@@ -19,6 +23,12 @@ function BuddyOverviewPage() {
           <h1>Welcome back, {user?.full_name?.split(" ")[0] || "Buddy"}!</h1>
           <p>Thank you for helping international students adapt.</p>
         </div>
+
+        {dashboard.buddyStatus && dashboard.buddyStatus !== "approved" ? (
+          <div className="local-review-alert">
+            Your buddy profile status is <strong>{dashboard.buddyStatus}</strong>. You can edit your profile, but you will appear in matching only after admin approval.
+          </div>
+        ) : null}
 
         <div className="local-overview-cards">
           <div className="dashboard-card local-stat-card">
@@ -41,11 +51,35 @@ function BuddyOverviewPage() {
         <div className="local-overview-bottom-grid">
           <div className="dashboard-card">
             <h3 className="card-title">Capacity</h3>
-            <p className="card-subtitle">You can support up to 3 active students at the same time.</p>
+            <p className="card-subtitle">You can support up to {dashboard.maxStudents} active students at the same time.</p>
           </div>
           <div className="dashboard-card">
             <h3 className="card-title">Action</h3>
             <p className="card-subtitle">Open Buddy Requests to accept or decline incoming requests.</p>
+          </div>
+          <div className="dashboard-card">
+            <h3 className="card-title">Upcoming Events</h3>
+            {events.length > 0 ? (
+              <div className="recent-messages-list">
+                {events.map((event) => (
+                  <div key={event.id} className="recent-message-content">
+                    <h4>{event.title}</h4>
+                    <p>
+                      {new Date(event.event_date).toLocaleString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                      {" · "}
+                      {event.location || "Location TBD"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="card-subtitle">No upcoming events yet.</p>
+            )}
           </div>
         </div>
       </section>
