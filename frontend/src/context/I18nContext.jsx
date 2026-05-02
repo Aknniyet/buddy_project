@@ -5,6 +5,10 @@ const I18nContext = createContext(null);
 const STORAGE_KEY = "kazakhbuddy_language";
 
 function getNestedValue(object, path) {
+  if (typeof path !== "string" || path.length === 0) {
+    return undefined;
+  }
+
   return path.split(".").reduce((acc, key) => acc?.[key], object);
 }
 
