@@ -1,509 +1,443 @@
-import { calculateBuddyScore, formatBuddyCard } from "../services/matchingService.js";
-import {
-  adminApproveRequest,
-  createManualMatch,
-  createAdminMatchNote,
-  ensureAdminNotesTable,
-  getActiveMatchesForAdmin,
-  getAdminNotesForMatch,
-  getApprovedBuddiesForAdmin,
-  getBuddyActiveMatchCount,
-  getBuddyProfiles,
-  getMatchHistoryForAdmin,
-  getPendingRequestsForAdmin,
-  getUnmatchedStudents,
-  reassignMatch,
-  updateMatchStatus,
-} from "../repositories/adminMatchRepository.js";
-import { updateBuddyStatus } from "../repositories/userRepository.js";
-import { createNotification } from "../repositories/notificationRepository.js";
+import { pool, query } from "../config/db.js";
 
-function ensureAdmin(req, res) {
-  if (req.user.role !== "admin") {
-    res.status(403).json({ message: "Admin access required." });
-    return false;
-  }
-
-  return true;
-}
-
-function buildReasonList(student, buddy) {
-  const reasons = [];
-  const sharedLanguages = (student.languages || []).filter((language) =>
-    (buddy.languages || []).includes(language)
+export async function ensureAdminNotesTable() {
+  await query(
+    `CREATE TABLE IF NOT EXISTS admin_match_notes (
+      id SERIAL PRIMARY KEY,
+      match_id INTEGER REFERENCES buddy_matches(id) ON DELETE CASCADE,
+      request_id INTEGER REFERENCES buddy_requests(id) ON DELETE CASCADE,
+      note TEXT NOT NULL,
+      created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    )`
   );
-  const sharedHobbies = (student.hobbies || []).filter((hobby) =>
-    (buddy.hobbies || []).includes(hobby)
+}
+
+export function getBuddyProfiles() {
+  return query(
+    `SELECT u.id, u.full_name, u.email, u.city, u.study_program, u.languages, u.hobbies,
+            u.about_you, u.buddy_status, u.max_buddies, u.created_at,
+            COUNT(m.id) FILTER (WHERE m.status = 'active')::int AS active_students_count
+     FROM users u
+     LEFT JOIN buddy_matches m ON m.buddy_id = u.id AND m.status = 'active'
+     WHERE u.role = 'local'
+     GROUP BY u.id
+     ORDER BY u.created_at DESC`
   );
-
-  if (student.study_program && buddy.study_program && student.study_program === buddy.study_program) {
-    reasons.push("Same study program");
-  }
-
-  if (sharedLanguages.length > 0) {
-    reasons.push(`Shared language: ${sharedLanguages.slice(0, 2).join(", ")}`);
-  }
-
-  if (sharedHobbies.length > 0) {
-    reasons.push(`Shared interests: ${sharedHobbies.slice(0, 2).join(", ")}`);
-  }
-
-  if (
-    student.gender_preference &&
-    student.gender_preference !== "no_preference" &&
-    buddy.gender &&
-    student.gender_preference === buddy.gender
-  ) {
-    reasons.push("Matches gender preference");
-  }
-
-  return reasons;
 }
 
-export async function getAdminMatchesOverview(req, res) {
-  try {
-    if (!ensureAdmin(req, res)) return;
-
-    const [, pendingResult, activeMatchesResult, studentsResult, buddiesResult, buddyProfilesResult, matchHistoryResult] =
-      await Promise.all([
-        ensureAdminNotesTable(),
-        getPendingRequestsForAdmin(),
-        getActiveMatchesForAdmin(),
-        getUnmatchedStudents(),
-        getApprovedBuddiesForAdmin(),
-        getBuddyProfiles(),
-        getMatchHistoryForAdmin(),
-      ]);
-    const approvedBuddies = buddiesResult.rows;
-    const cancelledBuddyByStudent = new Map();
-
-    matchHistoryResult.rows
-      .filter((match) => match.status === "cancelled")
-      .forEach((match) => {
-        const previous = cancelledBuddyByStudent.get(match.student_id) || new Set();
-        previous.add(match.buddy_id);
-        cancelledBuddyByStudent.set(match.student_id, previous);
-      });
-
-    const pendingRequests = pendingResult.rows.map((item) => {
-      const score = calculateBuddyScore(
-        {
-          study_program: item.student_program,
-          languages: item.student_languages || [],
-          hobbies: item.student_hobbies || [],
-          gender_preference: item.gender_preference,
-        },
-        {
-          study_program: item.buddy_program,
-          languages: item.buddy_languages || [],
-          hobbies: item.buddy_hobbies || [],
-          gender: item.gender,
-        }
-      );
-
-      return {
-        id: item.id,
-        studentId: item.student_id,
-        studentName: item.student_name,
-        buddyId: item.buddy_id,
-        buddyName: item.buddy_name,
-        score,
-        status: item.status,
-        buddyLoad: Number(item.active_students_count || 0),
-        buddyMax: Number(item.max_buddies || 3),
-        message: item.message || "No message provided.",
-        createdAt: item.created_at,
-      };
-    });
-
-    const suggestedMatches = studentsResult.rows
-      .map((student) => {
-        const cancelledBuddies = cancelledBuddyByStudent.get(student.id) || new Set();
-        const ranked = approvedBuddies
-          .filter((buddy) => !cancelledBuddies.has(buddy.id))
-          .map((buddy) => formatBuddyCard(student, buddy, new Map(), null))
-          .filter((buddy) => buddy.spotsAvailable > 0)
-          .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
-
-        const bestMatch = ranked[0];
-        if (!bestMatch) return null;
-
-        return {
-          studentId: student.id,
-          studentName: student.full_name,
-          buddyId: bestMatch.id,
-          buddyName: bestMatch.name,
-          score: bestMatch.score,
-          reasons: buildReasonList(student, {
-            study_program: bestMatch.program,
-            languages: bestMatch.languages ? bestMatch.languages.split(", ").filter(Boolean) : [],
-            hobbies: bestMatch.interests || [],
-            gender: null,
-          }),
-        };
-      })
-      .filter(Boolean);
-
-    return res.json({
-      pendingRequests,
-      activeMatches: activeMatchesResult.rows,
-      matchHistory: matchHistoryResult.rows,
-      unmatchedStudents: studentsResult.rows.map((student) => ({
-        id: student.id,
-        name: student.full_name,
-        country: student.home_country || "Not specified",
-        city: student.city || "Not specified",
-        program: student.study_program || "Not specified",
-        languages: student.languages || [],
-        interests: student.hobbies || [],
-        status: student.match_status,
-        registeredAt: student.created_at,
-      })),
-      suggestedMatches,
-      buddyProfiles: buddyProfilesResult.rows,
-      availableBuddies: approvedBuddies
-        .map((item) => ({
-          id: item.id,
-          name: item.full_name,
-          city: item.city || "Kazakhstan",
-          program: item.study_program || "Not specified",
-          languages: item.languages || [],
-          interests: item.hobbies || [],
-          activeStudents: Number(item.active_students_count || 0),
-          maxBuddies: Number(item.max_buddies || 3),
-          spotsAvailable: Math.max(0, Number(item.max_buddies || 3) - Number(item.active_students_count || 0)),
-        }))
-        .filter((buddy) => buddy.spotsAvailable > 0),
-    });
-  } catch (error) {
-    console.error("Admin matches overview error:", error.message);
-    return res.status(500).json({ message: "Could not load admin match data." });
-  }
+export function getPendingRequestsForAdmin() {
+  return query(
+    `SELECT br.id, br.created_at, br.message, br.preferred_language, br.status,
+            s.id AS student_id, s.full_name AS student_name, s.study_program AS student_program,
+            s.languages AS student_languages, s.hobbies AS student_hobbies, s.gender_preference,
+            b.id AS buddy_id, b.full_name AS buddy_name, b.study_program AS buddy_program,
+            b.languages AS buddy_languages, b.hobbies AS buddy_hobbies, b.gender,
+            b.max_buddies,
+            COUNT(m.id) FILTER (WHERE m.status = 'active') AS active_students_count
+     FROM buddy_requests br
+     JOIN users s ON s.id = br.international_student_id
+     JOIN users b ON b.id = br.buddy_id
+     LEFT JOIN buddy_matches m ON m.buddy_id = b.id AND m.status = 'active'
+     WHERE br.status = 'pending'
+     GROUP BY br.id, s.id, b.id
+     ORDER BY br.created_at DESC`
+  );
 }
 
-export async function approveRequestByAdmin(req, res) {
+export function getActiveMatchesForAdmin() {
+  return query(
+    `SELECT bm.id, bm.status, bm.created_at,
+            s.id AS student_id, s.full_name AS student_name,
+            b.id AS buddy_id, b.full_name AS buddy_name,
+            COALESCE(notes.note_count, 0) AS note_count
+     FROM buddy_matches bm
+     JOIN users s ON s.id = bm.international_student_id
+     JOIN users b ON b.id = bm.buddy_id
+     LEFT JOIN (
+       SELECT match_id, COUNT(*)::int AS note_count
+       FROM admin_match_notes
+       WHERE match_id IS NOT NULL
+       GROUP BY match_id
+     ) notes ON notes.match_id = bm.id
+     WHERE bm.status = 'active'
+     ORDER BY bm.created_at DESC`
+  );
+}
+
+export function getUnmatchedStudents() {
+  return query(
+    `SELECT u.id, u.full_name, u.home_country, u.city, u.study_program, u.languages, u.hobbies,
+            u.gender_preference, u.created_at,
+            CASE
+              WHEN EXISTS (
+                SELECT 1 FROM buddy_requests br
+                WHERE br.international_student_id = u.id AND br.status = 'pending'
+              )
+              THEN 'request_pending'
+              ELSE 'waiting_for_match'
+            END AS match_status
+     FROM users u
+     WHERE u.role = 'international'
+       AND NOT EXISTS (
+         SELECT 1
+         FROM buddy_matches bm
+         WHERE bm.international_student_id = u.id AND bm.status = 'active'
+       )
+     ORDER BY u.created_at DESC`
+  );
+}
+
+export function getApprovedBuddiesForAdmin() {
+  return query(
+    `SELECT u.id, u.full_name, u.email, u.city, u.study_program, u.languages, u.hobbies,
+            u.about_you, u.gender, u.buddy_status, u.max_buddies, u.profile_photo_url,
+            COUNT(m.id) FILTER (WHERE m.status = 'active') AS active_students_count
+     FROM users u
+     LEFT JOIN buddy_matches m ON m.buddy_id = u.id AND m.status = 'active'
+     WHERE u.role = 'local' AND u.buddy_status = 'approved'
+     GROUP BY u.id
+     ORDER BY u.full_name ASC`
+  );
+}
+
+export async function adminApproveRequest({ requestId, adminId }) {
+  const client = await pool.connect();
+
   try {
-    if (!ensureAdmin(req, res)) return;
+    await client.query("BEGIN");
 
-    const result = await adminApproveRequest({
-      requestId: req.params.requestId,
-      adminId: req.user.id,
-    });
+    const requestResult = await client.query(
+      `SELECT *
+       FROM buddy_requests
+       WHERE id = $1
+       FOR UPDATE`,
+      [requestId]
+    );
 
-    return res.json(result);
+    if (requestResult.rows.length === 0) {
+      throw new Error("REQUEST_NOT_FOUND");
+    }
+
+    const buddyRequest = requestResult.rows[0];
+
+    if (buddyRequest.status !== "pending") {
+      throw new Error("REQUEST_ALREADY_PROCESSED");
+    }
+
+    const activeStudentsResult = await client.query(
+      `SELECT u.max_buddies,
+              COUNT(m.id) FILTER (WHERE m.status = 'active')::int AS count
+       FROM users u
+       LEFT JOIN buddy_matches m ON m.buddy_id = u.id AND m.status = 'active'
+       WHERE u.id = $1
+       GROUP BY u.id`,
+      [buddyRequest.buddy_id]
+    );
+
+    if (activeStudentsResult.rows[0].count >= Number(activeStudentsResult.rows[0].max_buddies || 3)) {
+      throw new Error("BUDDY_LIMIT_REACHED");
+    }
+
+    const studentActiveMatch = await client.query(
+      `SELECT id
+       FROM buddy_matches
+       WHERE international_student_id = $1 AND status = 'active'`,
+      [buddyRequest.international_student_id]
+    );
+
+    if (studentActiveMatch.rows.length > 0) {
+      throw new Error("STUDENT_ALREADY_MATCHED");
+    }
+
+    const updatedRequest = await client.query(
+      `UPDATE buddy_requests
+       SET status = 'accepted', responded_at = NOW()
+       WHERE id = $1
+       RETURNING *`,
+      [requestId]
+    );
+
+    const matchResult = await client.query(
+      `INSERT INTO buddy_matches (international_student_id, buddy_id, status)
+       VALUES ($1, $2, 'active')
+       RETURNING id, international_student_id, buddy_id, status, created_at`,
+      [buddyRequest.international_student_id, buddyRequest.buddy_id]
+    );
+
+    await client.query(
+      `INSERT INTO conversations (international_student_id, buddy_id)
+       VALUES ($1, $2)
+       ON CONFLICT (international_student_id, buddy_id) DO NOTHING`,
+      [buddyRequest.international_student_id, buddyRequest.buddy_id]
+    );
+
+    await client.query(
+      `UPDATE buddy_requests
+       SET status = 'cancelled', responded_at = NOW()
+       WHERE international_student_id = $1 AND id <> $2 AND status = 'pending'`,
+      [buddyRequest.international_student_id, requestId]
+    );
+
+    await client.query("COMMIT");
+
+    return {
+      request: updatedRequest.rows[0],
+      match: matchResult.rows[0],
+      adminId,
+    };
   } catch (error) {
-    if (error.message === "REQUEST_NOT_FOUND") {
-      return res.status(404).json({ message: "Request not found." });
-    }
-
-    if (error.message === "REQUEST_ALREADY_PROCESSED") {
-      return res.status(400).json({ message: "Request has already been processed." });
-    }
-
-    if (error.message === "BUDDY_LIMIT_REACHED") {
-      return res.status(400).json({ message: "Selected buddy is already at full capacity." });
-    }
-
-    if (error.message === "STUDENT_ALREADY_MATCHED") {
-      return res.status(400).json({ message: "Student already has an active buddy." });
-    }
-
-    console.error("Admin approve request error:", error.message);
-    return res.status(500).json({ message: "Could not approve request." });
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
   }
 }
 
-export async function changeBuddyStatusByAdmin(req, res) {
+export async function updateMatchStatus(matchId, status) {
+  return query(
+    `UPDATE buddy_matches bm
+     SET status = $2
+     FROM users s, users b
+     WHERE bm.id = $1
+       AND s.id = bm.international_student_id
+       AND b.id = bm.buddy_id
+     RETURNING bm.id, bm.international_student_id, bm.buddy_id, bm.status, bm.created_at,
+               s.full_name AS student_name, b.full_name AS buddy_name`,
+    [matchId, status]
+  );
+}
+
+export function getMatchHistoryForAdmin() {
+  return query(
+    `SELECT bm.id, bm.status, bm.created_at,
+            s.id AS student_id, s.full_name AS student_name,
+            b.id AS buddy_id, b.full_name AS buddy_name,
+            COALESCE(notes.note_count, 0) AS note_count
+     FROM buddy_matches bm
+     JOIN users s ON s.id = bm.international_student_id
+     JOIN users b ON b.id = bm.buddy_id
+     LEFT JOIN (
+       SELECT match_id, COUNT(*)::int AS note_count
+       FROM admin_match_notes
+       WHERE match_id IS NOT NULL
+       GROUP BY match_id
+     ) notes ON notes.match_id = bm.id
+     WHERE bm.status IN ('completed', 'cancelled')
+     ORDER BY bm.created_at DESC
+     LIMIT 30`
+  );
+}
+
+export function getBuddyActiveMatchCount(buddyId) {
+  return query(
+    `SELECT COUNT(*)::int AS count
+     FROM buddy_matches
+     WHERE buddy_id = $1 AND status = 'active'`,
+    [buddyId]
+  );
+}
+
+export async function createManualMatch({ studentId, buddyId }) {
+  const client = await pool.connect();
+
   try {
-    if (!ensureAdmin(req, res)) return;
+    await client.query("BEGIN");
 
-    const { buddyStatus, reason } = req.body;
+    const peopleResult = await client.query(
+      `SELECT
+         s.id AS student_id, s.full_name AS student_name, s.role AS student_role,
+         b.id AS buddy_id, b.full_name AS buddy_name, b.role AS buddy_role, b.buddy_status, b.max_buddies,
+         COUNT(m.id) FILTER (WHERE m.status = 'active')::int AS active_students_count
+       FROM users s
+       CROSS JOIN users b
+       LEFT JOIN buddy_matches m ON m.buddy_id = b.id AND m.status = 'active'
+       WHERE s.id = $1 AND b.id = $2
+       GROUP BY s.id, b.id`,
+      [studentId, buddyId]
+    );
 
-    if (!["pending", "approved", "rejected", "suspended", "not_applied"].includes(buddyStatus)) {
-      return res.status(400).json({ message: "Invalid buddy status." });
+    if (peopleResult.rows.length === 0) {
+      throw new Error("PAIR_NOT_FOUND");
     }
 
-    if (["rejected", "suspended"].includes(buddyStatus) && !reason?.trim()) {
-      return res.status(400).json({ message: "Reason is required." });
+    const pair = peopleResult.rows[0];
+
+    if (pair.student_role !== "international") {
+      throw new Error("INVALID_STUDENT");
     }
 
-    if (["rejected", "suspended"].includes(buddyStatus)) {
-      const activeMatches = await getBuddyActiveMatchCount(req.params.buddyId);
-
-      if (activeMatches.rows[0]?.count > 0) {
-        return res.status(400).json({
-          message: "This buddy still has active students. Reassign or close those matches before changing availability.",
-        });
-      }
+    if (pair.buddy_role !== "local" || pair.buddy_status !== "approved") {
+      throw new Error("BUDDY_NOT_FOUND");
     }
 
-    const result = await updateBuddyStatus(req.params.buddyId, buddyStatus);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: "Buddy profile not found." });
+    if (pair.active_students_count >= Number(pair.max_buddies || 3)) {
+      throw new Error("BUDDY_LIMIT_REACHED");
     }
 
-    await createNotification({
-      userId: Number(req.params.buddyId),
-      type: buddyStatus === "approved" ? "buddy_profile_approved" : "buddy_profile_rejected",
-      title:
-        buddyStatus === "approved"
-          ? "Buddy profile approved"
-          : buddyStatus === "suspended"
-          ? "Buddy profile suspended"
-          : "Buddy profile rejected",
-      description:
-        buddyStatus === "approved"
-          ? "Your buddy profile was approved. Students can now send you buddy requests."
-          : `Your buddy profile status was changed to ${buddyStatus}. Reason: ${reason.trim()}`,
-      referenceType: "buddy_profile",
-      referenceId: Number(req.params.buddyId),
-    }).catch(() => null);
+    const studentActiveMatch = await client.query(
+      `SELECT id
+       FROM buddy_matches
+       WHERE international_student_id = $1 AND status = 'active'`,
+      [studentId]
+    );
 
-    return res.json(result.rows[0]);
+    if (studentActiveMatch.rows.length > 0) {
+      throw new Error("STUDENT_ALREADY_MATCHED");
+    }
+
+    const matchResult = await client.query(
+      `INSERT INTO buddy_matches (international_student_id, buddy_id, status)
+       VALUES ($1, $2, 'active')
+       RETURNING id, international_student_id, buddy_id, status, created_at`,
+      [studentId, buddyId]
+    );
+
+    await client.query(
+      `INSERT INTO conversations (international_student_id, buddy_id)
+       VALUES ($1, $2)
+       ON CONFLICT (international_student_id, buddy_id) DO NOTHING`,
+      [studentId, buddyId]
+    );
+
+    await client.query(
+      `UPDATE buddy_requests
+       SET status = 'cancelled', responded_at = NOW()
+       WHERE international_student_id = $1 AND status = 'pending'`,
+      [studentId]
+    );
+
+    await client.query("COMMIT");
+
+    return {
+      ...matchResult.rows[0],
+      student_name: pair.student_name,
+      buddy_name: pair.buddy_name,
+    };
   } catch (error) {
-    console.error("Change buddy status error:", error.message);
-    return res.status(500).json({ message: "Could not update buddy status." });
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
   }
 }
 
-export async function changeMatchStatusByAdmin(req, res) {
+export async function reassignMatch(matchId, newBuddyId) {
+  const client = await pool.connect();
+
   try {
-    if (!ensureAdmin(req, res)) return;
+    await client.query("BEGIN");
 
-    const { status, note } = req.body;
+    const matchResult = await client.query(
+      `SELECT *
+       FROM buddy_matches
+       WHERE id = $1
+       FOR UPDATE`,
+      [matchId]
+    );
 
-    if (!["completed", "cancelled", "active"].includes(status)) {
-      return res.status(400).json({ message: "Invalid match status." });
+    if (matchResult.rows.length === 0) {
+      throw new Error("MATCH_NOT_FOUND");
     }
 
-    if (["completed", "cancelled"].includes(status) && !note?.trim()) {
-      return res.status(400).json({ message: "Admin note is required for completing or cancelling a match." });
+    const match = matchResult.rows[0];
+
+    if (Number(match.buddy_id) === Number(newBuddyId)) {
+      throw new Error("SAME_BUDDY");
     }
 
-    const result = await updateMatchStatus(req.params.matchId, status);
+    const newBuddyResult = await client.query(
+      `SELECT u.id, u.full_name,
+              u.max_buddies,
+              COUNT(m.id) FILTER (WHERE m.status = 'active')::int AS active_students_count
+       FROM users u
+       LEFT JOIN buddy_matches m ON m.buddy_id = u.id AND m.status = 'active'
+       WHERE u.id = $1 AND u.role = 'local' AND u.buddy_status = 'approved'
+       GROUP BY u.id`,
+      [newBuddyId]
+    );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: "Match not found." });
+    if (newBuddyResult.rows.length === 0) {
+      throw new Error("BUDDY_NOT_FOUND");
     }
 
-    if (note?.trim()) {
-      await createAdminMatchNote({
-        matchId: Number(req.params.matchId),
-        note: `${status.toUpperCase()}: ${note.trim()}`,
-        createdBy: req.user.id,
-      });
+    if (newBuddyResult.rows[0].active_students_count >= Number(newBuddyResult.rows[0].max_buddies || 3)) {
+      throw new Error("BUDDY_LIMIT_REACHED");
     }
 
-    const match = result.rows[0];
-    const notificationText =
-      status === "completed"
-        ? "Your buddy match was marked as completed by admin."
-        : status === "cancelled"
-        ? "Your buddy match was cancelled by admin. The student can request another buddy now."
-        : "Your buddy match was reactivated by admin.";
+    const matchPeopleResult = await client.query(
+      `SELECT s.full_name AS student_name,
+              old_buddy.full_name AS old_buddy_name
+       FROM buddy_matches bm
+       JOIN users s ON s.id = bm.international_student_id
+       JOIN users old_buddy ON old_buddy.id = bm.buddy_id
+       WHERE bm.id = $1`,
+      [matchId]
+    );
 
-    await Promise.all([
-      createNotification({
-        userId: match.international_student_id,
-        type: `match_${status}`,
-        title: status === "completed" ? "Match completed" : status === "cancelled" ? "Match cancelled" : "Match reactivated",
-        description: notificationText,
-        referenceType: "match",
-        referenceId: match.id,
-      }).catch(() => null),
-      createNotification({
-        userId: match.buddy_id,
-        type: `match_${status}`,
-        title: status === "completed" ? "Match completed" : status === "cancelled" ? "Match cancelled" : "Match reactivated",
-        description: notificationText,
-        referenceType: "match",
-        referenceId: match.id,
-      }).catch(() => null),
-    ]);
+    const otherActiveMatch = await client.query(
+      `SELECT id
+       FROM buddy_matches
+       WHERE international_student_id = $1
+         AND status = 'active'
+         AND id <> $2`,
+      [match.international_student_id, matchId]
+    );
 
-    return res.json(result.rows[0]);
+    if (otherActiveMatch.rows.length > 0) {
+      throw new Error("STUDENT_ALREADY_MATCHED");
+    }
+
+    const updatedMatch = await client.query(
+      `UPDATE buddy_matches
+       SET buddy_id = $2, status = 'active'
+       WHERE id = $1
+       RETURNING id, international_student_id, buddy_id, status, created_at`,
+      [matchId, newBuddyId]
+    );
+
+    await client.query(
+      `INSERT INTO conversations (international_student_id, buddy_id)
+       VALUES ($1, $2)
+       ON CONFLICT (international_student_id, buddy_id) DO NOTHING`,
+      [match.international_student_id, newBuddyId]
+    );
+
+    await client.query("COMMIT");
+    return {
+      ...updatedMatch.rows[0],
+      old_buddy_id: match.buddy_id,
+      old_buddy_name: matchPeopleResult.rows[0]?.old_buddy_name || "Previous buddy",
+      new_buddy_name: newBuddyResult.rows[0].full_name,
+      student_name: matchPeopleResult.rows[0]?.student_name || "Student",
+    };
   } catch (error) {
-    console.error("Change match status error:", error.message);
-    return res.status(500).json({ message: "Could not update match status." });
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
   }
 }
 
-export async function createManualMatchByAdmin(req, res) {
-  try {
-    if (!ensureAdmin(req, res)) return;
+export async function createAdminMatchNote({ matchId = null, requestId = null, note, createdBy }) {
+  await ensureAdminNotesTable();
 
-    const { studentId, buddyId, note } = req.body;
-
-    if (!studentId || !buddyId) {
-      return res.status(400).json({ message: "Student and buddy are required." });
-    }
-
-    const result = await createManualMatch({
-      studentId: Number(studentId),
-      buddyId: Number(buddyId),
-    });
-
-    if (note?.trim()) {
-      await createAdminMatchNote({
-        matchId: result.id,
-        note: `MANUAL MATCH: ${note.trim()}`,
-        createdBy: req.user.id,
-      });
-    }
-
-    await Promise.all([
-      createNotification({
-        userId: result.international_student_id,
-        type: "match_created",
-        title: "New buddy assigned",
-        description: `Admin assigned ${result.buddy_name} as your buddy. You can now start messaging.`,
-        referenceType: "match",
-        referenceId: result.id,
-      }).catch(() => null),
-      createNotification({
-        userId: result.buddy_id,
-        type: "match_created",
-        title: "New student assigned",
-        description: `Admin assigned ${result.student_name} to you. You can now start messaging.`,
-        referenceType: "match",
-        referenceId: result.id,
-      }).catch(() => null),
-    ]);
-
-    return res.status(201).json(result);
-  } catch (error) {
-    if (error.message === "PAIR_NOT_FOUND") {
-      return res.status(404).json({ message: "Student or buddy not found." });
-    }
-
-    if (error.message === "INVALID_STUDENT") {
-      return res.status(400).json({ message: "Selected student is not an international student." });
-    }
-
-    if (error.message === "BUDDY_NOT_FOUND") {
-      return res.status(404).json({ message: "Selected buddy is not approved." });
-    }
-
-    if (error.message === "BUDDY_LIMIT_REACHED") {
-      return res.status(400).json({ message: "Selected buddy is already at full capacity." });
-    }
-
-    if (error.message === "STUDENT_ALREADY_MATCHED") {
-      return res.status(400).json({ message: "Student already has an active buddy." });
-    }
-
-    console.error("Create manual match error:", error.message);
-    return res.status(500).json({ message: "Could not create manual match." });
-  }
+  return query(
+    `INSERT INTO admin_match_notes (match_id, request_id, note, created_by)
+     VALUES ($1, $2, $3, $4)
+     RETURNING id, match_id, request_id, note, created_by, created_at`,
+    [matchId, requestId, note, createdBy]
+  );
 }
 
-export async function reassignMatchByAdmin(req, res) {
-  try {
-    if (!ensureAdmin(req, res)) return;
+export async function getAdminNotesForMatch(matchId) {
+  await ensureAdminNotesTable();
 
-    const { newBuddyId, note } = req.body;
-
-    if (!newBuddyId) {
-      return res.status(400).json({ message: "New buddy is required." });
-    }
-
-    const result = await reassignMatch(req.params.matchId, newBuddyId);
-
-    if (note?.trim()) {
-      await createAdminMatchNote({
-        matchId: Number(req.params.matchId),
-        note: note.trim(),
-        createdBy: req.user.id,
-      });
-    }
-
-    await Promise.all([
-      createNotification({
-        userId: result.international_student_id,
-        type: "match_reassigned",
-        title: "Your buddy was updated",
-        description: `Admin reassigned your buddy from ${result.old_buddy_name} to ${result.new_buddy_name}. You can now message your new buddy.`,
-        referenceType: "match",
-        referenceId: result.id,
-      }).catch(() => null),
-      createNotification({
-        userId: result.old_buddy_id,
-        type: "match_reassigned",
-        title: "Buddy assignment changed",
-        description: `${result.student_name} was reassigned to another buddy by admin.`,
-        referenceType: "match",
-        referenceId: result.id,
-      }).catch(() => null),
-      createNotification({
-        userId: result.buddy_id,
-        type: "match_reassigned",
-        title: "New student assigned",
-        description: `Admin assigned ${result.student_name} to you. You can now open Messages and start chatting.`,
-        referenceType: "match",
-        referenceId: result.id,
-      }).catch(() => null),
-    ]);
-
-    return res.json(result);
-  } catch (error) {
-    if (error.message === "MATCH_NOT_FOUND") {
-      return res.status(404).json({ message: "Match not found." });
-    }
-
-    if (error.message === "BUDDY_NOT_FOUND") {
-      return res.status(404).json({ message: "New buddy was not found or is not approved." });
-    }
-
-    if (error.message === "SAME_BUDDY") {
-      return res.status(400).json({ message: "This student is already assigned to selected buddy." });
-    }
-
-    if (error.message === "STUDENT_ALREADY_MATCHED") {
-      return res.status(400).json({ message: "This student already has another active buddy." });
-    }
-
-    if (error.message === "BUDDY_LIMIT_REACHED") {
-      return res.status(400).json({ message: "New buddy is already at full capacity." });
-    }
-
-    console.error("Reassign match error:", error.message);
-    return res.status(500).json({ message: "Could not reassign match." });
-  }
-}
-
-export async function addAdminMatchNote(req, res) {
-  try {
-    if (!ensureAdmin(req, res)) return;
-
-    const { matchId, requestId, note } = req.body;
-
-    if (!note?.trim()) {
-      return res.status(400).json({ message: "Note text is required." });
-    }
-
-    const result = await createAdminMatchNote({
-      matchId: matchId || null,
-      requestId: requestId || null,
-      note: note.trim(),
-      createdBy: req.user.id,
-    });
-
-    return res.status(201).json(result.rows[0]);
-  } catch (error) {
-    console.error("Create admin note error:", error.message);
-    return res.status(500).json({ message: "Could not save note." });
-  }
-}
-
-export async function getMatchNotesByAdmin(req, res) {
-  try {
-    if (!ensureAdmin(req, res)) return;
-
-    const result = await getAdminNotesForMatch(req.params.matchId);
-    return res.json(result.rows);
-  } catch (error) {
-    console.error("Get match notes error:", error.message);
-    return res.status(500).json({ message: "Could not load notes." });
-  }
+  return query(
+    `SELECT id, note, created_by, created_at
+     FROM admin_match_notes
+     WHERE match_id = $1
+     ORDER BY created_at DESC`,
+    [matchId]
+  );
 }
