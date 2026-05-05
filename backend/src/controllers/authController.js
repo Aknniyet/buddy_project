@@ -1,5 +1,4 @@
 import bcrypt from 'bcrypt';
-import { env } from '../config/env.js';
 import { generateToken } from '../utils/generateToken.js';
 import { normalizeArray } from '../services/arrayUtils.js';
 import { generateCode, isValidEmail } from '../utils/email.js';
@@ -16,20 +15,7 @@ import {
   updateUserPassword,
 } from '../repositories/userRepository.js';
 
-async function sendVerificationCodeWithDevFallback(email, code) {
-  try {
-    await sendVerificationEmail(email, code);
-    return { delivered: true };
-  } catch (error) {
-    if (env.nodeEnv !== 'production') {
-      console.warn('Verification email failed in development:', error.message);
-      console.warn(`Use this verification code for ${email}: ${code}`);
-      return { delivered: false, error };
-    }
-
-    throw error;
-  }
-}
+const LOCAL_BUDDY_HOME_COUNTRY = 'Kazakhstan';
 
 export async function register(req, res) {
   try {
@@ -71,13 +57,14 @@ export async function register(req, res) {
 
     const passwordHash = await bcrypt.hash(password, 10);
     const buddyStatus = role === 'local' ? 'pending' : 'not_applied';
+    const normalizedHomeCountry = role === 'local' ? LOCAL_BUDDY_HOME_COUNTRY : homeCountry;
 
     const insertedUser = await createUser({
       fullName,
       email,
       passwordHash,
       role,
-      homeCountry,
+      homeCountry: normalizedHomeCountry,
       city,
       studyProgram,
       languages: normalizeArray(languages),
@@ -151,19 +138,17 @@ export async function registerStart(req, res) {
     const code = generateCode();
     await deleteEmailCodes(normalizedEmail, 'verify_email');
     await createEmailCode(normalizedEmail, code, 'verify_email');
-    const emailResult = await sendVerificationCodeWithDevFallback(normalizedEmail, code);
+    await sendVerificationEmail(normalizedEmail, code);
 
     return res.status(200).json({
-      message: emailResult.delivered
-        ? 'Verification code sent to email.'
-        : 'Email delivery failed in local development. Use the code from the backend terminal.',
+      message: 'Verification code sent to email.',
       pendingUser: {
         fullName,
         email: normalizedEmail,
         password,
         confirmPassword,
         role,
-        homeCountry,
+        homeCountry: role === 'local' ? LOCAL_BUDDY_HOME_COUNTRY : homeCountry,
         city,
         studyProgram,
         languages,
@@ -173,7 +158,6 @@ export async function registerStart(req, res) {
         genderPreference,
         maxBuddies,
       },
-      ...(emailResult.delivered ? {} : { devCode: code }),
     });
   } catch (error) {
     console.error('Register start error:', error.message);
@@ -199,14 +183,9 @@ export async function resendVerificationCode(req, res) {
     const code = generateCode();
     await deleteEmailCodes(normalizedEmail, 'verify_email');
     await createEmailCode(normalizedEmail, code, 'verify_email');
-    const emailResult = await sendVerificationCodeWithDevFallback(normalizedEmail, code);
+    await sendVerificationEmail(normalizedEmail, code);
 
-    return res.status(200).json({
-      message: emailResult.delivered
-        ? 'A new verification code was sent to your email.'
-        : 'Email delivery failed in local development. Use the code from the backend terminal.',
-      ...(emailResult.delivered ? {} : { devCode: code }),
-    });
+    return res.status(200).json({ message: 'A new verification code was sent to your email.' });
   } catch (error) {
     console.error('Resend verification code error:', error.message);
     return res.status(500).json({ message: 'Server error while resending verification code.' });
@@ -259,13 +238,14 @@ export async function registerVerify(req, res) {
 
     const passwordHash = await bcrypt.hash(password, 10);
     const buddyStatus = role === 'local' ? 'pending' : 'not_applied';
+    const normalizedHomeCountry = role === 'local' ? LOCAL_BUDDY_HOME_COUNTRY : homeCountry;
 
     const insertedUser = await createUser({
       fullName,
       email: normalizedEmail,
       passwordHash,
       role,
-      homeCountry,
+      homeCountry: normalizedHomeCountry,
       city,
       studyProgram,
       languages: normalizeArray(languages),
