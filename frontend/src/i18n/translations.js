@@ -272,7 +272,7 @@ export const translations = {
         },
         universityLife: {
           title: "University Life (AITU)",
-          subtitle: "Everything you need inside the university.",
+          subtitle: "Everything you need inside the university and around campus.",
           items: {
             deansOffice: {
               title: "Dean's Office",
@@ -281,6 +281,18 @@ export const translations = {
             portal: {
               title: "Student Portal",
               content: "Use university systems to check grades and schedule.",
+            },
+            map: {
+              title: "University Map",
+              content: "Use the interactive AITU map to find campus buildings, classrooms, and key university locations more easily.",
+            },
+            news: {
+              title: "Official News Channels",
+              content: "Follow these channels to keep up with announcements, events, campus updates, and student life news.",
+            },
+            buddyChat: {
+              title: "Buddy Telegram Chat",
+              content: "Join the shared Buddy chat to ask questions, connect with other students, and get quick help from the community.",
             },
           },
         },
@@ -384,7 +396,7 @@ export const translations = {
       buddyGenderHelp: "You can keep it flexible or choose a preference.",
       homeCountryPlaceholder: "e.g., Japan, Brazil",
       cityPlaceholder: "e.g., Almaty, Astana",
-      studyProgramPlaceholder: "e.g., Computer Science, Business",
+      studyProgramPlaceholder: "Select",
       languagesPlaceholder: "e.g., English, German",
       interestsPlaceholder: "e.g., Hiking, Photography, Gaming",
       aboutYouPlaceholder:
@@ -713,7 +725,7 @@ export const translations = {
         },
         universityLife: {
           title: "Жизнь в университете (AITU)",
-          subtitle: "Всё, что вам нужно внутри университета.",
+          subtitle: "Всё, что вам нужно внутри университета и вокруг кампуса.",
           items: {
             deansOffice: {
               title: "Деканат",
@@ -722,6 +734,18 @@ export const translations = {
             portal: {
               title: "Студенческий портал",
               content: "Используйте университетские системы для просмотра оценок и расписания.",
+            },
+            map: {
+              title: "Карта университета",
+              content: "Используйте интерактивную карту AITU, чтобы быстрее находить корпуса, аудитории и важные места на кампусе.",
+            },
+            news: {
+              title: "Официальные новостные каналы",
+              content: "Подпишитесь на эти каналы, чтобы следить за объявлениями, событиями, обновлениями кампуса и студенческой жизнью.",
+            },
+            buddyChat: {
+              title: "Telegram-чат Buddy",
+              content: "Вступайте в общий чат Buddy, чтобы задавать вопросы, знакомиться с другими студентами и быстро получать помощь от сообщества.",
             },
           },
         },
@@ -825,7 +849,7 @@ export const translations = {
       buddyGenderHelp: "Можно оставить без предпочтений или выбрать вариант.",
       homeCountryPlaceholder: "например, Япония, Бразилия",
       cityPlaceholder: "например, Алматы, Астана",
-      studyProgramPlaceholder: "например, Computer Science, Business",
+      studyProgramPlaceholder: "Выберите из списка",
       languagesPlaceholder: "например, English, German",
       interestsPlaceholder: "например, Hiking, Photography, Gaming",
       aboutYouPlaceholder: "Расскажите немного о себе...",
@@ -1153,7 +1177,7 @@ export const translations = {
         },
         universityLife: {
           title: "Университет өмірі (AITU)",
-          subtitle: "Университет ішіндегі қажет нәрсенің бәрі.",
+          subtitle: "Университет ішіндегі және кампус айналасындағы қажет нәрсенің бәрі.",
           items: {
             deansOffice: {
               title: "Деканат",
@@ -1162,6 +1186,18 @@ export const translations = {
             portal: {
               title: "Студенттік портал",
               content: "Бағалар мен кестені көру үшін университет жүйелерін пайдаланыңыз.",
+            },
+            map: {
+              title: "Университет картасы",
+              content: "AITU интерактивті картасын пайдаланып, кампустағы ғимараттарды, аудиторияларды және маңызды орындарды оңай табыңыз.",
+            },
+            news: {
+              title: "Ресми жаңалық арналары",
+              content: "Хабарландырулар, іс-шаралар, кампус жаңалықтары және студенттік өмір туралы ақпаратты бақылау үшін осы арналарға жазылыңыз.",
+            },
+            buddyChat: {
+              title: "Buddy Telegram чаты",
+              content: "Сұрақ қою, басқа студенттермен байланысу және қауымдастықтан жедел көмек алу үшін ортақ Buddy чатына қосылыңыз.",
             },
           },
         },
@@ -1265,7 +1301,7 @@ export const translations = {
       buddyGenderHelp: "Айырмасы жоқ деп қалдыруға немесе таңдауға болады.",
       homeCountryPlaceholder: "мысалы, Жапония, Бразилия",
       cityPlaceholder: "мысалы, Алматы, Астана",
-      studyProgramPlaceholder: "мысалы, Computer Science, Business",
+      studyProgramPlaceholder: "Тізімнен таңдаңыз",
       languagesPlaceholder: "мысалы, English, German",
       interestsPlaceholder: "мысалы, Hiking, Photography, Gaming",
       aboutYouPlaceholder: "Өзіңіз туралы аздап жазыңыз...",
