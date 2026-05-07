@@ -119,6 +119,10 @@ button {
   justify-content: center;
 }
 
+.sidebar-user-avatar.image {
+  background: transparent;
+}
+
 .sidebar-user h4 {
   margin: 0;
   font-size: 14px;
@@ -217,10 +221,13 @@ button {
 }
 
 .topbar-avatar {
-  width: 38px;
-  height: 38px;
+  width: 35px;
+  height: 35px;
   border-radius: 999px;
   object-fit: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .dashboard-content {
