@@ -14,6 +14,7 @@ const iconMap = {
   request_sent: Bell,
   request_received: Bell,
   request_accepted: CheckCircle2,
+  feedback_received: Star,
   request_declined: UserRoundX,
   match_created: UserCheck,
   match_reassigned: UserCheck,
