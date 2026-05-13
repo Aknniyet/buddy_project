@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import { apiRequest } from "../../lib/api";
+import { formatAstanaShortDateTime } from "../../utils/datetime";
 import "../../styles/events.css";
 
 function EventsPage({ userType = "student" }) {
@@ -47,12 +48,7 @@ function EventsPage({ userType = "student" }) {
               <div className="event-card-top">
                 <span className="event-badge">{item.category || "General"}</span>
                 <span className="event-date">
-                  {new Date(item.event_date).toLocaleString("en-GB", {
-                    day: "2-digit",
-                    month: "short",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                  {formatAstanaShortDateTime(item.event_date)}
                 </span>
               </div>
 
