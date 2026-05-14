@@ -13,6 +13,7 @@ import ProfilePage from "../pages/shared/ProfilePage";
 import EventsPage from "../pages/shared/EventsPage";
 import CommunityBoardPage from "../pages/shared/CommunityBoardPage";
 import StudentOverview from "../pages/student/StudentOverview";
+import AssistantPage from "../pages/student/AssistantPage";
 import FindBuddiesPage from "../pages/student/FindBuddiesPage";
 import AdaptationChecklistPage from "../pages/student/AdaptationChecklistPage";
 import BuddyOverviewPage from "../pages/buddy/BuddyOverviewPage";
@@ -130,6 +131,15 @@ function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={["international"]}>
             <CommunityBoardPage userType="student" />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/student/assistant"
+        element={
+          <ProtectedRoute allowedRoles={["international"]}>
+            <AssistantPage userType="student" />
           </ProtectedRoute>
         }
       />
