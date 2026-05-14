@@ -46,7 +46,7 @@ function MessagesPage({ userType = "student" }) {
       }
     );
     setMessages((prev) => [...prev, result.message]);
-    await loadConversations();
+    loadConversations().catch(() => null);
   };
 
   return (

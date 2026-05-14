@@ -5,6 +5,7 @@ import { formatAstanaRelativeDateLabel, formatAstanaTime, getAstanaDateKey } fro
 
 function ChatWindow({ conversation, messages, onSendMessage }) {
   const [text, setText] = useState("");
+  const [isSending, setIsSending] = useState(false);
   const canSend = useMemo(() => text.trim().length > 0, [text]);
   const messagesEndRef = useRef(null);
   const currentUser = getSavedUser();
@@ -15,9 +16,19 @@ function ChatWindow({ conversation, messages, onSendMessage }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!canSend) return;
-    await onSendMessage(text.trim());
+    if (!canSend || isSending) return;
+
+    const outgoingText = text.trim();
     setText("");
+    setIsSending(true);
+
+    try {
+      await onSendMessage(outgoingText);
+    } catch (_error) {
+      setText(outgoingText);
+    } finally {
+      setIsSending(false);
+    }
   };
 
   let lastDate = null;
@@ -86,12 +97,13 @@ function ChatWindow({ conversation, messages, onSendMessage }) {
           type="text"
           placeholder="Type a message..."
           value={text}
+          disabled={isSending}
           onChange={(e) => setText(e.target.value)}
         />
         <button
           type="submit"
-          className={canSend ? "send-button active" : "send-button"}
-          disabled={!canSend}
+          className={canSend && !isSending ? "send-button active" : "send-button"}
+          disabled={!canSend || isSending}
         >
           <Send size={18} />
         </button>
