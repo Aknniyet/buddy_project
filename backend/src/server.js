@@ -11,9 +11,9 @@ async function startServer() {
       console.log(`Server running on http://localhost:${env.port}`);
     });
   } catch (error) {
-    console.error("Could not start server:", error.message);
-    process.exit(1);
-  }
+  console.error("Could not start server:", error);
+  process.exit(1);
+}
 }
 
 startServer();
