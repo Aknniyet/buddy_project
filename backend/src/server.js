@@ -12,6 +12,7 @@ async function startServer() {
     });
   } catch (error) {
   console.error("Could not start server:", error);
+  console.error("Error stack:", error?.stack);
   process.exit(1);
 }
 }
