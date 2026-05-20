@@ -67,10 +67,21 @@ export function findBuddyDashboardData(userId) {
 
 export function findStudentChecklistTasks(userId) {
   return query(
-    `SELECT id, category, title, description, is_completed
+    `SELECT id, category, title, description, priority, timeframe, action_label, action_url, is_completed
      FROM adaptation_checklist_tasks
      WHERE user_id = $1
      ORDER BY id ASC`,
     [userId]
+  );
+}
+
+export function findUpcomingDashboardEvents(limit = 2) {
+  return query(
+    `SELECT id, title, event_date, location
+     FROM events
+     WHERE event_date >= NOW()
+     ORDER BY event_date ASC
+     LIMIT $1`,
+    [limit]
   );
 }

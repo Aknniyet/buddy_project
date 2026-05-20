@@ -1,8 +1,8 @@
 import bcrypt from 'bcrypt';
 import { generateToken } from '../utils/generateToken.js';
-import { normalizeArray } from '../services/arrayUtils.js';
 import { generateCode, isValidEmail } from '../utils/email.js';
 import { sendResetEmail, sendVerificationEmail } from '../utils/mailer.js';
+import { validateRegistrationData } from '../utils/userValidation.js';
 import {
   createBuddyApplication,
   createEmailCode,
@@ -19,11 +19,15 @@ const LOCAL_BUDDY_HOME_COUNTRY = 'Kazakhstan';
 
 export async function register(req, res) {
   try {
+    const validation = validateRegistrationData(req.body);
+    if (validation.error) {
+      return res.status(400).json({ message: validation.error });
+    }
+
     const {
       fullName,
       email,
       password,
-      confirmPassword,
       role,
       homeCountry,
       city,
@@ -34,21 +38,7 @@ export async function register(req, res) {
       gender,
       genderPreference,
       maxBuddies,
-    } = req.body;
-
-    if (!fullName || !email || !password || !confirmPassword || !role) {
-      return res.status(400).json({
-        message: 'Full name, email, password, confirm password and role are required.',
-      });
-    }
-
-    if (password !== confirmPassword) {
-      return res.status(400).json({ message: 'Passwords do not match.' });
-    }
-
-    if (!['international', 'local', 'admin'].includes(role)) {
-      return res.status(400).json({ message: 'Role is invalid.' });
-    }
+    } = validation.value;
 
     const existingUser = await findUserByEmail(email);
     if (existingUser.rows.length > 0) {
@@ -67,18 +57,18 @@ export async function register(req, res) {
       homeCountry: normalizedHomeCountry,
       city,
       studyProgram,
-      languages: normalizeArray(languages),
-      hobbies: normalizeArray(hobbies),
+      languages,
+      hobbies,
       aboutYou,
       gender,
       genderPreference,
-      maxBuddies: Number(maxBuddies) || 3,
+      maxBuddies,
       buddyStatus,
       emailVerified: true,
     });
 
     if (role === 'local') {
-      await createBuddyApplication(insertedUser.rows[0].id, aboutYou, 'Flexible', Number(maxBuddies) || 3).catch(() => null);
+      await createBuddyApplication(insertedUser.rows[0].id, aboutYou, 'Flexible', maxBuddies).catch(() => null);
     }
 
     return res.status(201).json({
@@ -93,6 +83,11 @@ export async function register(req, res) {
 
 export async function registerStart(req, res) {
   try {
+    const validation = validateRegistrationData(req.body);
+    if (validation.error) {
+      return res.status(400).json({ message: validation.error });
+    }
+
     const {
       fullName,
       email,
@@ -108,43 +103,24 @@ export async function registerStart(req, res) {
       gender,
       genderPreference,
       maxBuddies,
-    } = req.body;
+    } = validation.value;
 
-    if (!fullName || !email || !password || !confirmPassword || !role) {
-      return res.status(400).json({
-        message: 'Full name, email, password, confirm password and role are required.',
-      });
-    }
-
-    if (!isValidEmail(email)) {
-      return res.status(400).json({ message: 'Enter a valid email.' });
-    }
-
-    if (password !== confirmPassword) {
-      return res.status(400).json({ message: 'Passwords do not match.' });
-    }
-
-    if (!['international', 'local', 'admin'].includes(role)) {
-      return res.status(400).json({ message: 'Role is invalid.' });
-    }
-
-    const normalizedEmail = email.toLowerCase();
-    const existingUser = await findUserByEmail(normalizedEmail);
+    const existingUser = await findUserByEmail(email);
 
     if (existingUser.rows.length > 0 && existingUser.rows[0].email_verified) {
       return res.status(409).json({ message: 'This email is already registered.' });
     }
 
     const code = generateCode();
-    await deleteEmailCodes(normalizedEmail, 'verify_email');
-    await createEmailCode(normalizedEmail, code, 'verify_email');
-    await sendVerificationEmail(normalizedEmail, code);
+    await deleteEmailCodes(email, 'verify_email');
+    await createEmailCode(email, code, 'verify_email');
+    await sendVerificationEmail(email, code);
 
     return res.status(200).json({
       message: 'Verification code sent to email.',
       pendingUser: {
         fullName,
-        email: normalizedEmail,
+        email,
         password,
         confirmPassword,
         role,
@@ -194,12 +170,16 @@ export async function resendVerificationCode(req, res) {
 
 export async function registerVerify(req, res) {
   try {
+    const validation = validateRegistrationData(req.body);
+    if (validation.error) {
+      return res.status(400).json({ message: validation.error });
+    }
+
     const {
       code,
       fullName,
       email,
       password,
-      confirmPassword,
       role,
       homeCountry,
       city,
@@ -210,28 +190,15 @@ export async function registerVerify(req, res) {
       gender,
       genderPreference,
       maxBuddies,
-    } = req.body;
+    } = validation.value;
 
-    if (!code || !fullName || !email || !password || !confirmPassword || !role) {
-      return res.status(400).json({ message: 'Missing required fields.' });
-    }
-
-    if (!isValidEmail(email)) {
-      return res.status(400).json({ message: 'Enter a valid email.' });
-    }
-
-    if (password !== confirmPassword) {
-      return res.status(400).json({ message: 'Passwords do not match.' });
-    }
-
-    const normalizedEmail = email.toLowerCase();
-    const codeResult = await findValidEmailCode(normalizedEmail, code, 'verify_email');
+    const codeResult = await findValidEmailCode(email, code, 'verify_email');
 
     if (codeResult.rows.length === 0) {
       return res.status(400).json({ message: 'Invalid or expired code.' });
     }
 
-    const existingUser = await findUserByEmail(normalizedEmail);
+    const existingUser = await findUserByEmail(email);
     if (existingUser.rows.length > 0) {
       return res.status(409).json({ message: 'This email is already registered.' });
     }
@@ -242,27 +209,27 @@ export async function registerVerify(req, res) {
 
     const insertedUser = await createUser({
       fullName,
-      email: normalizedEmail,
+      email,
       passwordHash,
       role,
       homeCountry: normalizedHomeCountry,
       city,
       studyProgram,
-      languages: normalizeArray(languages),
-      hobbies: normalizeArray(hobbies),
+      languages,
+      hobbies,
       aboutYou,
       gender,
       genderPreference,
-      maxBuddies: Number(maxBuddies) || 3,
+      maxBuddies,
       buddyStatus,
       emailVerified: true,
     });
 
     if (role === 'local') {
-      await createBuddyApplication(insertedUser.rows[0].id, aboutYou, 'Flexible', Number(maxBuddies) || 3).catch(() => null);
+      await createBuddyApplication(insertedUser.rows[0].id, aboutYou, 'Flexible', maxBuddies).catch(() => null);
     }
 
-    await deleteEmailCodes(normalizedEmail, 'verify_email');
+    await deleteEmailCodes(email, 'verify_email');
 
     return res.status(201).json({
       message: 'Account created successfully. Please sign in.',
