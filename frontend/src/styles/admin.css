@@ -29,6 +29,10 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.admin-stats-grid-wide {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .admin-stat-label {
   margin: 0 0 14px;
   color: #667085;
@@ -164,7 +168,17 @@
 }
 
 .admin-match-tabs {
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: thin;
   margin-bottom: 16px;
+}
+
+.admin-match-tabs .admin-tab-button {
+  flex: 0 0 auto;
+  padding: 10px 14px;
+  white-space: nowrap;
 }
 
 .admin-match-toolbar {
@@ -235,6 +249,10 @@
   color: #667085;
 }
 
+.admin-table-head-compact {
+  grid-template-columns: minmax(180px, 1.7fr) 0.8fr 0.9fr;
+}
+
 .admin-table-row {
   padding: 15px 0;
   border-bottom: 1px solid #eef3f2;
@@ -258,6 +276,119 @@
 .admin-table-text {
   color: #475467;
   font-size: 14px;
+}
+
+.admin-moderation-panel {
+  margin-top: 18px;
+}
+
+.admin-moderation-error {
+  margin-bottom: 14px;
+  border-radius: 12px;
+  background: #fef3f2;
+  border: 1px solid #fecdca;
+  color: #b42318;
+  font-size: 14px;
+  padding: 12px 14px;
+}
+
+.admin-report-list {
+  display: grid;
+  gap: 14px;
+}
+
+.admin-report-card {
+  border: 1px solid #e4eceb;
+  border-radius: 16px;
+  padding: 16px 18px;
+  background: #fbfefe;
+}
+
+.admin-report-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.admin-report-top h4 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  color: #0f172a;
+}
+
+.admin-report-top p {
+  margin: 0;
+  font-size: 13px;
+  color: #667085;
+}
+
+.admin-report-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.admin-report-status.active {
+  background: #fff4d6;
+  color: #b7791f;
+}
+
+.admin-report-status.hidden {
+  background: #fef3f2;
+  color: #b42318;
+}
+
+.admin-report-reason {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #475467;
+}
+
+.admin-report-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.admin-inline-action {
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid #d8e4e3;
+  background: #ffffff;
+  color: #344054;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-inline-action.danger {
+  border-color: #f3c6c6;
+  color: #c24141;
+}
+
+.admin-inline-action:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .admin-report-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .admin-report-actions {
+    justify-content: flex-start;
+  }
 }
 
 .admin-card-grid {
@@ -428,6 +559,146 @@
   padding: 5px 10px;
 }
 
+.admin-match-breakdown {
+  margin-top: 12px;
+  border: 1px solid #e3eeee;
+  border-radius: 14px;
+  background: #f8fcfc;
+  padding: 14px;
+}
+
+.admin-match-breakdown-toggle {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.admin-match-breakdown-toggle strong {
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.admin-match-breakdown-toggle span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #667085;
+}
+
+.admin-match-breakdown-content {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e7efee;
+}
+
+.admin-match-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.admin-match-reasons.preview {
+  margin-top: 10px;
+  margin-bottom: 0;
+}
+
+.admin-match-reason-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: #e7f5f4;
+  color: #0a7d84;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.admin-match-reason-pill.compact {
+  font-size: 11px;
+  padding: 5px 9px;
+}
+
+.admin-nlp-risk-box {
+  margin-top: 12px;
+  border: 1px solid #dcebea;
+  border-radius: 14px;
+  background: #f8fcfc;
+  padding: 12px;
+}
+
+.admin-nlp-risk-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.admin-nlp-risk-top strong {
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.admin-nlp-risk-top span {
+  color: #0a7d84;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.admin-match-breakdown-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-match-breakdown-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid #e7efee;
+  padding-top: 8px;
+}
+
+.admin-match-breakdown-row:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.admin-match-breakdown-row p,
+.admin-match-breakdown-row small {
+  margin: 0;
+}
+
+.admin-match-breakdown-row p {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 2px;
+}
+
+.admin-match-breakdown-row small {
+  display: block;
+  font-size: 11px;
+  line-height: 1.45;
+  color: #667085;
+}
+
+.admin-match-breakdown-row strong {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: #0f9c9c;
+}
+
 .admin-status-pill {
   display: inline-flex;
   align-items: center;
@@ -473,6 +744,21 @@
 .admin-status-pill.cancelled {
   background: #ffe4e6;
   color: #be123c;
+}
+
+.admin-status-pill.risk-high {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.admin-status-pill.risk-medium {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.admin-status-pill.risk-low {
+  background: #dcfce7;
+  color: #15803d;
 }
 
 
@@ -611,6 +897,12 @@
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.admin-inline-hint {
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .admin-primary-btn,
@@ -801,6 +1093,12 @@
   .admin-table-head,
   .admin-table-row {
     grid-template-columns: 1fr;
+  }
+
+  .admin-match-breakdown-toggle,
+  .admin-match-breakdown-row {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .admin-event-row {

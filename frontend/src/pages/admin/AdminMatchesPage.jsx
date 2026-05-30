@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import { apiRequest } from "../../lib/api";
 import { formatAstanaDate } from "../../utils/datetime";
@@ -6,6 +7,63 @@ import "../../styles/admin.css";
 
 function EmptyAdminState({ text }) {
   return <div className="admin-empty-state">{text}</div>;
+}
+
+function MatchBreakdown({ scoreLabel, reasons = [], breakdown = [] }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="admin-match-breakdown">
+      <button
+        type="button"
+        className="admin-match-breakdown-toggle"
+        onClick={() => setIsOpen((prev) => !prev)}
+        aria-expanded={isOpen}
+      >
+        <strong>Compatibility {scoreLabel}</strong>
+        <span>
+          Why this match fits
+          {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </span>
+      </button>
+
+      {!isOpen && reasons.length ? (
+        <div className="admin-match-reasons preview">
+          {reasons.slice(0, 2).map((reason) => (
+            <span key={reason} className="admin-match-reason-pill compact">
+              {reason}
+            </span>
+          ))}
+        </div>
+      ) : null}
+
+      {isOpen ? (
+        <div className="admin-match-breakdown-content">
+          {reasons.length ? (
+            <div className="admin-match-reasons">
+              {reasons.map((reason) => (
+                <span key={reason} className="admin-match-reason-pill">
+                  {reason}
+                </span>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="admin-match-breakdown-grid">
+            {breakdown.map((item) => (
+              <div className="admin-match-breakdown-row" key={item.key}>
+                <div>
+                  <p>{item.label}</p>
+                  <small>{item.summary}</small>
+                </div>
+                <strong>+{item.score}</strong>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 function formatStatusLabel(value) {
@@ -16,6 +74,7 @@ function formatStatusLabel(value) {
 function AdminMatchesPage() {
   const [data, setData] = useState({
     pendingRequests: [],
+    reassignmentRequests: [],
     activeMatches: [],
     matchHistory: [],
     unmatchedStudents: [],
@@ -26,6 +85,8 @@ function AdminMatchesPage() {
   const [error, setError] = useState("");
   const [noteByMatch, setNoteByMatch] = useState({});
   const [reassignBuddyByMatch, setReassignBuddyByMatch] = useState({});
+  const [reassignBuddyByRequest, setReassignBuddyByRequest] = useState({});
+  const [noteByRequest, setNoteByRequest] = useState({});
   const [suggestionNoteByStudent, setSuggestionNoteByStudent] = useState({});
   const [activeTab, setActiveTab] = useState("unmatched");
   const [searchValue, setSearchValue] = useState("");
@@ -51,8 +112,10 @@ function AdminMatchesPage() {
       await action();
       setStatus(successMessage);
       await loadData();
+      return true;
     } catch (actionError) {
       setError(actionError.message || "Admin action failed.");
+      return false;
     }
   };
 
@@ -98,7 +161,7 @@ function AdminMatchesPage() {
     const newBuddyId = reassignBuddyByMatch[matchId];
     if (!newBuddyId) return;
 
-    await runAction(
+    const success = await runAction(
       () =>
         apiRequest(`/admin/matches/${matchId}/reassign`, {
           method: "PATCH",
@@ -109,8 +172,51 @@ function AdminMatchesPage() {
         }),
       "Buddy reassigned successfully."
     );
-    setNoteByMatch((prev) => ({ ...prev, [matchId]: "" }));
-    setReassignBuddyByMatch((prev) => ({ ...prev, [matchId]: "" }));
+
+    if (success) {
+      setNoteByMatch((prev) => ({ ...prev, [matchId]: "" }));
+      setReassignBuddyByMatch((prev) => ({ ...prev, [matchId]: "" }));
+    }
+  };
+
+  const handleReassignRequest = async (request) => {
+    const newBuddyId = reassignBuddyByRequest[request.id];
+    if (!newBuddyId) return;
+
+    const success = await runAction(
+      () =>
+        apiRequest(`/admin/matches/${request.match_id}/reassign`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            newBuddyId: Number(newBuddyId),
+            note: noteByRequest[request.id] || `Reassignment requested by ${request.student_name}.`,
+          }),
+        }),
+      "Reassignment request resolved and buddy changed."
+    );
+
+    if (success) {
+      setNoteByRequest((prev) => ({ ...prev, [request.id]: "" }));
+      setReassignBuddyByRequest((prev) => ({ ...prev, [request.id]: "" }));
+    }
+  };
+
+  const handleDeclineReassignment = async (request) => {
+    const note = noteByRequest[request.id] || "";
+    if (!note.trim()) return;
+
+    const success = await runAction(
+      () =>
+        apiRequest(`/admin/reassignment-requests/${request.id}/decline`, {
+          method: "PATCH",
+          body: JSON.stringify({ note }),
+        }),
+      "Reassignment request declined."
+    );
+
+    if (success) {
+      setNoteByRequest((prev) => ({ ...prev, [request.id]: "" }));
+    }
   };
 
   const tabConfig = {
@@ -149,6 +255,15 @@ function AdminMatchesPage() {
         "Student requests waiting for review. Approving creates a match and opens chat.",
       empty: "No pending requests.",
       searchPlaceholder: "Search by student, buddy or request message",
+      filterOptions: [],
+    },
+    reassignments: {
+      label: "Reassignments",
+      title: "Reassignment requests",
+      description:
+        "Students who already have an active buddy and asked admin to review a possible change.",
+      empty: "No reassignment requests.",
+      searchPlaceholder: "Search by student, current buddy or reason",
       filterOptions: [],
     },
     recommended: {
@@ -217,6 +332,8 @@ function AdminMatchesPage() {
           buddy.program,
           buddy.languages?.join(" "),
           buddy.interests?.join(" "),
+          buddy.supportAreas?.join(" "),
+          buddy.preferredMeetingMode,
         ]
           .filter(Boolean)
           .join(" ")
@@ -252,6 +369,20 @@ function AdminMatchesPage() {
           filterValue === "all" ||
           (filterValue === "with_reasons" && item.reasons?.length);
         return matchesQuery && matchesFilter;
+      });
+    }
+
+    if (activeTab === "reassignments") {
+      return data.reassignmentRequests.filter((request) => {
+        const haystack = [
+          request.student_name,
+          request.current_buddy_name,
+          request.reason,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return !query || haystack.includes(query);
       });
     }
 
@@ -385,8 +516,11 @@ function AdminMatchesPage() {
                     <div className="admin-meta">
                       <span>{buddy.activeStudents}/{buddy.maxBuddies} active</span>
                       <span>{buddy.spotsAvailable} slots left</span>
+                      <span>{formatStatusLabel(buddy.preferredMeetingMode)} meetings</span>
+                      <span>{buddy.maxWeeklyHours}h/week</span>
                       <span>{buddy.languages?.length ? buddy.languages.join(", ") : "Languages not set"}</span>
                       <span>{buddy.interests?.length ? buddy.interests.join(", ") : "Interests not set"}</span>
+                      <span>{buddy.supportAreas?.length ? buddy.supportAreas.join(", ") : "Support areas not set"}</span>
                     </div>
                   </div>
                 </article>
@@ -396,11 +530,20 @@ function AdminMatchesPage() {
               paginatedItems.map((request) => (
                 <article className="admin-list-item" key={request.id}>
                   <div className="admin-item-main">
-                    <h4>{request.studentName} {"=>"} {request.buddyName}</h4>
+                    <div className="admin-item-title-row">
+                      <h4>{request.studentName} {"=>"} {request.buddyName}</h4>
+                      <span className="admin-status-pill">{request.scoreLabel || `${request.score}/100`}</span>
+                    </div>
                     <p>{request.message}</p>
                     <div className="admin-meta">
                       <span>{formatAstanaDate(request.createdAt)}</span>
+                      <span>{request.buddyLoad}/{request.buddyMax} active students</span>
                     </div>
+                    <MatchBreakdown
+                      scoreLabel={request.scoreLabel || `${request.score}/100`}
+                      reasons={request.reasons || []}
+                      breakdown={request.breakdown || []}
+                    />
                   </div>
 
                   <div className="admin-inline-actions">
@@ -415,8 +558,20 @@ function AdminMatchesPage() {
               paginatedItems.map((item) => (
                 <article className="admin-list-item admin-match-item" key={item.studentId}>
                   <div className="admin-item-main">
-                    <h4>{item.studentName} {"=>"} {item.buddyName}</h4>
-                    <p>{item.reasons?.length ? item.reasons.join(" | ") : "Available buddy with open capacity."}</p>
+                    <div className="admin-item-title-row">
+                      <h4>{item.studentName} {"=>"} {item.buddyName}</h4>
+                      <span className="admin-status-pill">{item.scoreLabel || `${item.score}/100`}</span>
+                    </div>
+                    <p>
+                      {item.reasons?.length
+                        ? item.reasons.join(" | ")
+                        : "Available buddy with open capacity."}
+                    </p>
+                    <MatchBreakdown
+                      scoreLabel={item.scoreLabel || `${item.score}/100`}
+                      reasons={item.reasons || []}
+                      breakdown={item.breakdown || []}
+                    />
                   </div>
 
                   <div className="admin-action-panel">
@@ -435,6 +590,78 @@ function AdminMatchesPage() {
                   </div>
                 </article>
               ))}
+
+            {activeTab === "reassignments" &&
+              paginatedItems.map((request) => {
+                const note = noteByRequest[request.id] || "";
+                const reassignOptions = data.availableBuddies.filter(
+                  (buddy) => buddy.id !== request.current_buddy_id && buddy.spotsAvailable > 0
+                );
+
+                return (
+                  <article className="admin-list-item admin-match-item" key={request.id}>
+                    <div className="admin-item-main">
+                      <div className="admin-item-title-row">
+                        <h4>{request.student_name} {"=>"} {request.current_buddy_name}</h4>
+                        <span className="admin-status-pill">Pending review</span>
+                      </div>
+                      <p>{request.reason}</p>
+                      <div className="admin-meta">
+                        <span>Requested: {formatAstanaDate(request.created_at)}</span>
+                        <span>Current match #{request.match_id}</span>
+                      </div>
+                    </div>
+
+                    <div className="admin-action-panel wide">
+                      <textarea
+                        className="admin-note-input"
+                        rows={3}
+                        placeholder="Admin note for reassignment or decline..."
+                        value={note}
+                        onChange={(event) =>
+                          setNoteByRequest((prev) => ({ ...prev, [request.id]: event.target.value }))
+                        }
+                      />
+
+                      <div className="admin-inline-actions">
+                        <select
+                          className="admin-select"
+                          value={reassignBuddyByRequest[request.id] || ""}
+                          onChange={(event) =>
+                            setReassignBuddyByRequest((prev) => ({ ...prev, [request.id]: event.target.value }))
+                          }
+                        >
+                          <option value="">Choose new buddy</option>
+                          {reassignOptions.map((buddy) => (
+                            <option key={buddy.id} value={buddy.id}>
+                              {buddy.name} ({buddy.spotsAvailable} spots left)
+                            </option>
+                          ))}
+                        </select>
+                        {reassignOptions.length === 0 ? (
+                          <span className="admin-inline-hint">No approved buddies with free capacity</span>
+                        ) : null}
+                        <button
+                          type="button"
+                          className="admin-secondary-btn"
+                          disabled={!reassignBuddyByRequest[request.id]}
+                          onClick={() => handleReassignRequest(request)}
+                        >
+                          Reassign
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-danger-btn"
+                          disabled={!note.trim()}
+                          onClick={() => handleDeclineReassignment(request)}
+                        >
+                          Decline
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
 
             {activeTab === "active" &&
               paginatedItems.map((match) => {
@@ -481,6 +708,9 @@ function AdminMatchesPage() {
                             </option>
                           ))}
                         </select>
+                        {reassignOptions.length === 0 ? (
+                          <span className="admin-inline-hint">No approved buddies with free capacity</span>
+                        ) : null}
                         <button
                           type="button"
                           className="admin-secondary-btn"
