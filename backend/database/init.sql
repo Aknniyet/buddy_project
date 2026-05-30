@@ -15,8 +15,13 @@ CREATE TABLE IF NOT EXISTS users (
   buddy_status VARCHAR(30) NOT NULL DEFAULT 'not_applied'
     CHECK (buddy_status IN ('not_applied', 'pending', 'approved', 'rejected', 'suspended')),
   max_buddies INTEGER NOT NULL DEFAULT 3,
+  preferred_meeting_mode VARCHAR(20) NOT NULL DEFAULT 'both'
+    CHECK (preferred_meeting_mode IN ('online', 'offline', 'both')),
+  max_weekly_hours INTEGER NOT NULL DEFAULT 2,
+  support_areas TEXT[] DEFAULT ARRAY[]::TEXT[],
   profile_photo_url TEXT,
   email_verified BOOLEAN NOT NULL DEFAULT FALSE,
+  last_active_at TIMESTAMP,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -29,6 +34,26 @@ ADD COLUMN IF NOT EXISTS email_verified BOOLEAN;
 
 ALTER TABLE users
 ADD COLUMN IF NOT EXISTS max_buddies INTEGER NOT NULL DEFAULT 3;
+
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS preferred_meeting_mode VARCHAR(20) NOT NULL DEFAULT 'both';
+
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS max_weekly_hours INTEGER NOT NULL DEFAULT 2;
+
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS support_areas TEXT[] DEFAULT ARRAY[]::TEXT[];
+
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMP;
+
+ALTER TABLE users
+ALTER COLUMN last_active_at DROP DEFAULT;
+
+CREATE TABLE IF NOT EXISTS platform_runtime_flags (
+  flag_key VARCHAR(100) PRIMARY KEY,
+  created_at TIMESTAMP DEFAULT NOW()
+);
 
 ALTER TABLE users
 DROP CONSTRAINT IF EXISTS users_buddy_status_check;
@@ -107,6 +132,24 @@ DROP CONSTRAINT IF EXISTS buddy_matches_international_student_id_buddy_id_status
 CREATE UNIQUE INDEX IF NOT EXISTS one_active_match_per_student
 ON buddy_matches (international_student_id)
 WHERE status = 'active';
+
+CREATE TABLE IF NOT EXISTS match_reassignment_requests (
+  id SERIAL PRIMARY KEY,
+  match_id INTEGER NOT NULL REFERENCES buddy_matches(id) ON DELETE CASCADE,
+  international_student_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  current_buddy_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reason TEXT NOT NULL,
+  status VARCHAR(30) NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending', 'resolved', 'declined')),
+  reviewed_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  admin_note TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  responded_at TIMESTAMP
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS one_pending_reassignment_per_match
+ON match_reassignment_requests(match_id)
+WHERE status = 'pending';
 
 CREATE TABLE IF NOT EXISTS buddy_feedback (
   id SERIAL PRIMARY KEY,
@@ -223,6 +266,7 @@ CREATE TABLE IF NOT EXISTS community_posts (
   title VARCHAR(180) NOT NULL,
   description TEXT NOT NULL,
   category VARCHAR(60) NOT NULL DEFAULT 'hangout',
+  status VARCHAR(30) NOT NULL DEFAULT 'active',
   location VARCHAR(160),
   meeting_time TIMESTAMP,
   image_url TEXT,
@@ -233,8 +277,14 @@ CREATE TABLE IF NOT EXISTS community_posts (
 ALTER TABLE community_posts
 ADD COLUMN IF NOT EXISTS image_url TEXT;
 
+ALTER TABLE community_posts
+ADD COLUMN IF NOT EXISTS status VARCHAR(30) NOT NULL DEFAULT 'active';
+
 CREATE INDEX IF NOT EXISTS idx_community_posts_created_at
 ON community_posts(created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_community_posts_status
+ON community_posts(status, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS community_post_interests (
   id SERIAL PRIMARY KEY,
@@ -267,9 +317,13 @@ CREATE TABLE IF NOT EXISTS adaptation_checklist_tasks (
   description TEXT NOT NULL,
   priority VARCHAR(20) DEFAULT 'medium',
   timeframe VARCHAR(80),
+  deadline TIMESTAMP,
   action_label VARCHAR(120),
   action_url TEXT,
+  created_by VARCHAR(20) NOT NULL DEFAULT 'system',
+  is_custom BOOLEAN NOT NULL DEFAULT FALSE,
   is_completed BOOLEAN DEFAULT FALSE,
+  completed_at TIMESTAMP,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -285,6 +339,39 @@ ADD COLUMN IF NOT EXISTS action_label VARCHAR(120);
 
 ALTER TABLE adaptation_checklist_tasks
 ADD COLUMN IF NOT EXISTS action_url TEXT;
+
+ALTER TABLE adaptation_checklist_tasks
+ADD COLUMN IF NOT EXISTS deadline TIMESTAMP;
+
+ALTER TABLE adaptation_checklist_tasks
+ADD COLUMN IF NOT EXISTS created_by VARCHAR(20) NOT NULL DEFAULT 'system';
+
+ALTER TABLE adaptation_checklist_tasks
+ADD COLUMN IF NOT EXISTS is_custom BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE adaptation_checklist_tasks
+ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP;
+
+CREATE TABLE IF NOT EXISTS task_reminder_deliveries (
+  id SERIAL PRIMARY KEY,
+  task_id INTEGER NOT NULL REFERENCES adaptation_checklist_tasks(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reminder_type VARCHAR(30) NOT NULL
+    CHECK (reminder_type IN ('24_hours', '6_hours', 'overdue')),
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE (task_id, user_id, reminder_type)
+);
+
+CREATE TABLE IF NOT EXISTS event_attendance (
+  id SERIAL PRIMARY KEY,
+  event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  status VARCHAR(20) NOT NULL DEFAULT 'going'
+    CHECK (status IN ('going', 'attended')),
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE (event_id, user_id)
+);
 
 INSERT INTO events (title, description, event_date, location, category)
 SELECT
