@@ -10,24 +10,39 @@ function getRoleLabel(role) {
   return "Admin";
 }
 
+const initialDashboard = {
+  stats: {
+    totalUsers: 0,
+    internationalStudents: 0,
+    buddies: 0,
+    activeMatches: 0,
+    pendingRequests: 0,
+    upcomingEvents: 0,
+  },
+  recentUsers: [],
+  analytics: {},
+};
+
 function AdminDashboard() {
-  const [dashboard, setDashboard] = useState({
-    stats: {
-      totalUsers: 0,
-      internationalStudents: 0,
-      buddies: 0,
-      activeMatches: 0,
-      pendingRequests: 0,
-      upcomingEvents: 0,
-    },
-    recentUsers: [],
-  });
+  const [dashboard, setDashboard] = useState(initialDashboard);
   const [searchValue, setSearchValue] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    apiRequest("/admin/dashboard").then(setDashboard).catch(() => null);
+    apiRequest("/admin/dashboard")
+      .then((data) =>
+        setDashboard({
+          ...initialDashboard,
+          ...data,
+          stats: {
+            ...initialDashboard.stats,
+            ...(data?.stats || {}),
+          },
+          recentUsers: Array.isArray(data?.recentUsers) ? data.recentUsers : [],
+        })
+      )
+      .catch(() => null);
   }, []);
 
   useEffect(() => {
@@ -73,10 +88,10 @@ function AdminDashboard() {
       <section className="admin-page">
         <div className="admin-page-header">
           <h1>Platform Overview</h1>
-          <p>Keep admin work readable even when users and requests grow.</p>
+          <p>Watch adaptation progress, checklist pressure, and students who may need extra support.</p>
         </div>
 
-        <div className="admin-stats-grid compact-grid">
+        <div className="admin-stats-grid admin-stats-grid-wide">
           {stats.map((item) => (
             <div className="dashboard-card admin-stat-card" key={item.label}>
               <p className="admin-stat-label">{item.label}</p>
@@ -112,17 +127,15 @@ function AdminDashboard() {
 
           <div className="admin-content-layout single-column">
             <div className="admin-section-header admin-section-header-tight">
-              <h3>Recent users</h3>
-              <p>Recent registrations in a simpler and more compact view.</p>
+              <h3>Recent Users</h3>
+              <p>Quick visibility into new accounts and recent activity.</p>
             </div>
 
             {paginatedItems.length === 0 ? (
-              <div className="admin-empty-state">
-                No items match your search or filters.
-              </div>
+              <div className="admin-empty-state">No items match your search or filters.</div>
             ) : (
               <div className="admin-table">
-                <div className="admin-table-head">
+                <div className="admin-table-head admin-table-head-compact">
                   <span>Name</span>
                   <span>Role</span>
                   <span>Date</span>
@@ -173,6 +186,7 @@ function AdminDashboard() {
             </div>
           </div>
         </div>
+
       </section>
     </DashboardLayout>
   );
