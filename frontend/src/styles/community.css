@@ -18,6 +18,41 @@
   margin-bottom: 14px;
 }
 
+.community-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.community-toolbar input,
+.community-toolbar select {
+  min-height: 40px;
+  border: 1px solid #d8e4e3;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #111827;
+  font: inherit;
+  font-size: 14px;
+  padding: 0 12px;
+}
+
+.community-toolbar select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5' fill='none' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+
+.community-toolbar input {
+  flex: 1;
+  min-width: 240px;
+}
+
 .community-feed-header,
 .community-post-header,
 .community-post-footer,
@@ -69,11 +104,17 @@
 .community-open-composer {
   justify-content: center;
   gap: 8px;
-  padding: 12px 16px;
-  border-radius: 999px;
-  background: #0f9aa8;
+  min-height: 40px;
+  padding: 0 18px;
+  border-radius: 12px;
+  background: #09979a;
   color: #ffffff;
   font-weight: 600;
+  font-size: 14px;
+}
+
+.community-open-composer:hover {
+  background: #087f82;
 }
 
 .community-post-card,
@@ -81,7 +122,7 @@
 .community-modal {
   border: 1px solid #d8e4e3;
   background: #fffdfd;
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.04);
+  box-shadow: none;
 }
 
 .community-post-card {
@@ -104,7 +145,7 @@
   padding: 24px;
   text-align: center;
   color: #667085;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  box-shadow: none;
 }
 
 .community-empty-card h3 {
@@ -472,7 +513,7 @@
 .community-modal textarea:focus,
 .community-modal select:focus {
   border-color: #0f9aa8;
-  box-shadow: 0 0 0 4px rgba(15, 154, 168, 0.1);
+  box-shadow: none;
 }
 
 .community-comment-form button {
@@ -561,7 +602,7 @@
   background: #ffffff;
   border-radius: 24px;
   border: 1px solid #edf1f4;
-  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.22);
+  box-shadow: none;
   padding: 24px;
 }
 
@@ -639,6 +680,11 @@
 
 .community-modal {
   width: min(700px, 100%);
+  display: flex;
+  flex-direction: column;
+  max-height: min(820px, calc(100dvh - 56px));
+  min-height: 0;
+  overflow: hidden;
   padding: 20px;
 }
 
@@ -659,6 +705,15 @@
 .community-modal textarea {
   margin-top: 12px;
   resize: vertical;
+}
+
+.community-modal-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .community-image-preview {
@@ -685,6 +740,13 @@
 .community-modal-actions {
   gap: 10px;
   margin-top: 14px;
+}
+
+.community-modal-actions {
+  flex-shrink: 0;
+  padding-top: 14px;
+  border-top: 1px solid #edf3f2;
+  background: #fffdfd;
 }
 
 .community-photo-button {
@@ -732,9 +794,11 @@
 }
 
 @media (max-width: 700px) {
+  .community-modal-backdrop {
+    padding: 12px;
+  }
+
   .community-feed-header,
-  .community-post-header,
-  .community-post-content-header,
   .community-post-footer,
   .community-modal-tools,
   .community-modal-actions {
@@ -742,15 +806,60 @@
     flex-direction: column;
   }
 
+  .community-post-header,
+  .community-post-content-header {
+    align-items: center;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .community-author,
+  .community-post-copy {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .community-post-badges {
+    flex-shrink: 0;
+    justify-content: flex-end;
+  }
+
+  .community-owner-actions {
+    flex-shrink: 0;
+    justify-content: flex-end;
+  }
+
   .community-comment-form {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
   }
 
   .community-comment-form button {
+    grid-column: 1 / -1;
     padding: 11px 18px;
   }
 
   .community-open-composer {
+    width: 100%;
+  }
+
+  .community-modal {
+    width: 100%;
+    max-height: calc(100dvh - 24px);
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .community-modal-body {
+    padding-right: 0;
+  }
+
+  .community-image-preview img {
+    max-height: 220px;
+  }
+
+  .community-photo-button,
+  .community-submit-button {
     width: 100%;
   }
 
