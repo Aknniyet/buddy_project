@@ -2,7 +2,21 @@ import { pool, query } from '../config/db.js';
 
 export function findStudentForMatching(studentId) {
   return query(
-    `SELECT id, role, study_program, languages, hobbies, gender_preference
+    `SELECT id, role, home_country, study_program, languages, hobbies, about_you, gender_preference,
+            (
+              SELECT br.message
+              FROM buddy_requests br
+              WHERE br.international_student_id = users.id
+              ORDER BY br.created_at DESC
+              LIMIT 1
+            ) AS latest_request_message,
+            COALESCE((
+              SELECT br.support_topics
+              FROM buddy_requests br
+              WHERE br.international_student_id = users.id
+              ORDER BY br.created_at DESC
+              LIMIT 1
+            ), ARRAY[]::text[]) AS latest_support_topics
      FROM users
      WHERE id = $1`,
     [studentId]
@@ -11,9 +25,16 @@ export function findStudentForMatching(studentId) {
 
 export function findStudentActiveMatch(studentId) {
   return query(
-    `SELECT id, buddy_id
-     FROM buddy_matches
-     WHERE international_student_id = $1 AND status = 'active'`,
+    `SELECT bm.id,
+            bm.buddy_id,
+            EXISTS (
+              SELECT 1
+              FROM match_reassignment_requests rr
+              WHERE rr.match_id = bm.id
+                AND rr.status = 'pending'
+            ) AS has_pending_reassignment
+     FROM buddy_matches bm
+     WHERE bm.international_student_id = $1 AND bm.status = 'active'`,
     [studentId]
   );
 }
@@ -45,7 +66,8 @@ export function findAvailableBuddies(
 ) {
   return query(
     `SELECT u.id, u.full_name, u.email, u.city, u.study_program, u.languages, u.hobbies,
-            u.about_you, u.gender, u.buddy_status, u.max_buddies, u.profile_photo_url,
+            u.about_you, u.gender, u.buddy_status, u.max_buddies, u.preferred_meeting_mode,
+            u.max_weekly_hours, u.support_areas, u.profile_photo_url,
             COUNT(m.id) FILTER (WHERE m.status = 'active') AS active_students_count,
             COALESCE((
               SELECT ROUND(AVG(bf.rating)::numeric, 1)::float
@@ -248,7 +270,8 @@ export function findMyMatches(userId, role) {
     return query(
       `SELECT bm.id, bm.status, bm.created_at,
               b.id AS buddy_id, b.full_name, b.email, b.city, b.study_program,
-              b.languages, b.hobbies, b.about_you, b.profile_photo_url,
+              b.languages, b.hobbies, b.about_you, b.preferred_meeting_mode,
+              b.max_weekly_hours, b.support_areas, b.profile_photo_url,
               COALESCE((
                 SELECT ROUND(AVG(bf.rating)::numeric, 1)::float
                 FROM buddy_feedback bf
