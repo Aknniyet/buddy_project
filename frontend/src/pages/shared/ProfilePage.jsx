@@ -8,6 +8,7 @@ import { apiRequest } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import { useI18n } from "../../context/I18nContext";
 import {
+  STUDY_PROGRAMS,
   toggleLanguageSelection,
   sanitizeRestrictedFieldValue,
   validateProfileForm,
@@ -40,6 +41,9 @@ function ProfilePage({ userType = "student" }) {
       aboutYou: profile.about_you || "",
       profilePhotoUrl: profile.profile_photo_url || "",
       maxBuddies: String(profile.max_buddies || 3),
+      preferredMeetingMode: profile.preferred_meeting_mode || "both",
+      maxWeeklyHours: String(profile.max_weekly_hours || 2),
+      supportAreas: (profile.support_areas || []).join(", "),
     });
   };
 
@@ -128,7 +132,15 @@ function ProfilePage({ userType = "student" }) {
         { id: 2, label: "Email", key: "email", value: rawProfile.email || "" , disabled: true},
         { id: 3, label: "Home Country", key: "homeCountry", value: rawProfile.home_country || "" },
         { id: 4, label: "Current City", key: "city", value: rawProfile.city || "" },
-        { id: 5, label: "Study Program", key: "studyProgram", value: rawProfile.study_program || "" },
+        {
+          id: 5,
+          label: "Study Program",
+          key: "studyProgram",
+          value: rawProfile.study_program || "",
+          type: "select",
+          options: STUDY_PROGRAMS,
+          placeholder: "Select",
+        },
         { id: 6, label: "Gender", key: "gender", value: rawProfile.gender || "" , type: "select", options: ["female", "male", "other"]},
         { id: 7, label: "Buddy Preference", key: "genderPreference", value: rawProfile.gender_preference || "no_preference", type: "select", options: ["no_preference", "female", "male", "other"] },
         ...(isBuddy
@@ -140,6 +152,22 @@ function ProfilePage({ userType = "student" }) {
                 value: String(rawProfile.max_buddies || 3),
                 type: "select",
                 options: ["1", "2", "3"],
+              },
+              {
+                id: 9,
+                label: "Preferred Meeting Mode",
+                key: "preferredMeetingMode",
+                value: rawProfile.preferred_meeting_mode || "both",
+                type: "select",
+                options: ["online", "offline", "both"],
+              },
+              {
+                id: 10,
+                label: "Max Weekly Hours",
+                key: "maxWeeklyHours",
+                value: String(rawProfile.max_weekly_hours || 2),
+                type: "select",
+                options: ["1", "2", "3", "4", "5", "6", "8", "10", "12", "15", "20"],
               },
             ]
           : []),
@@ -161,8 +189,20 @@ function ProfilePage({ userType = "student" }) {
           key: "hobbies",
           items: rawProfile.hobbies?.length ? rawProfile.hobbies : ["Not provided"],
         },
+        ...(isBuddy
+          ? [
+              {
+                id: 3,
+                title: "Support Areas",
+                icon: Heart,
+                type: "outline",
+                key: "supportAreas",
+                items: rawProfile.support_areas?.length ? rawProfile.support_areas : ["Not provided"],
+              },
+            ]
+          : []),
         {
-          id: 3,
+          id: 4,
           title: "About You",
           icon: UserRound,
           type: "text",
