@@ -5,6 +5,7 @@ import {
   findIncomingRequestsForBuddy,
   findBuddyFeedbackOverview,
   findMyMatches,
+  findDeclinedRequestBetween,
   findPendingRequestBetween,
   findStudentMatchedBuddy,
   findRequestsCreatedByStudent,
@@ -18,6 +19,7 @@ import {
 import { formatBuddyCard } from '../services/matchingService.js';
 import { createNotification } from '../services/notificationService.js';
 import { detectSupportTopics, getTopicLabels } from '../services/nlpSupportService.js';
+import { sendRealtimeEventToUsers } from "../services/realtimeService.js";
 import { findAdminRecipients, findUserProfileById } from '../repositories/userRepository.js';
 import {
   createReassignmentRequest,
@@ -124,6 +126,13 @@ export async function createRequest(req, res) {
       return res.status(409).json({ message: 'You already sent a request to this buddy.' });
     }
 
+    const previousDeclined = await findDeclinedRequestBetween(req.user.id, buddyId);
+    if (previousDeclined.rows.length > 0) {
+      return res.status(409).json({
+        message: 'This buddy already declined your previous request. Please choose another buddy.',
+      });
+    }
+
     const mergedSupportTopics = getTopicLabels(
       detectSupportTopics(message, supportTopics || [])
     );
@@ -146,6 +155,16 @@ export async function createRequest(req, res) {
       referenceType: 'buddy_request',
       referenceId: result.rows[0].id,
     }).catch(() => null);
+
+    sendRealtimeEventToUsers(
+      [req.user.id, buddyId],
+      "buddy_request.created",
+      {
+        requestId: result.rows[0].id,
+        studentId: req.user.id,
+        buddyId: Number(buddyId),
+      }
+    );
 
     return res.status(201).json({
       message: 'Your request has been sent. Please wait for the buddy response.',
@@ -180,6 +199,7 @@ export async function getIncomingRequests(req, res) {
       country: item.home_country || 'Not specified',
       program: item.study_program || 'Not specified',
       interests: item.hobbies || [],
+      supportTopics: item.support_topics || [],
       message: item.message || 'No message provided.',
       date: formatAstanaDate(item.created_at),
       avatar:
@@ -232,6 +252,30 @@ export async function respondToRequest(req, res) {
         referenceType: 'buddy_request',
         referenceId: Number(requestId),
       }).catch(() => null);
+    }
+
+    sendRealtimeEventToUsers(
+      [req.user.id, result.studentId],
+      "buddy_request.updated",
+      {
+        requestId: Number(requestId),
+        action,
+        studentId: result.studentId || null,
+        buddyId: req.user.id,
+      }
+    );
+
+    if (action === "accept" && result.studentId) {
+      sendRealtimeEventToUsers(
+        [req.user.id, result.studentId],
+        "match.updated",
+        {
+          requestId: Number(requestId),
+          status: "active",
+          studentId: result.studentId,
+          buddyId: req.user.id,
+        }
+      );
     }
 
     return res.json(result);
@@ -379,6 +423,15 @@ export async function requestMatchReassignment(req, res) {
           referenceId: Number(matchId),
         }).catch(() => null)
       )
+    );
+
+    sendRealtimeEventToUsers(
+      adminsResult.rows.map((admin) => admin.id),
+      "match.reassignment_requested",
+      {
+        matchId: Number(matchId),
+        studentId: req.user.id,
+      }
     );
 
     return res.status(201).json({
