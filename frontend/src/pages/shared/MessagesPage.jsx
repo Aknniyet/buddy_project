@@ -4,7 +4,8 @@ import ConversationsList from "../../components/messages/ConversationsList";
 import ChatWindow from "../../components/messages/ChatWindow";
 import EmptyChatState from "../../components/messages/EmptyChatState";
 import EmptyConversationsState from "../../components/messages/EmptyConversationsState";
-import { apiRequest } from "../../lib/api";
+import { apiRequest, getSavedUser } from "../../lib/api";
+import { REALTIME_WINDOW_EVENT } from "../../lib/realtime";
 import "../../styles/messages.css";
 
 function MessagesPage({ userType = "student" }) {
@@ -12,38 +13,175 @@ function MessagesPage({ userType = "student" }) {
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [messageActionError, setMessageActionError] = useState("");
+  const [loadError, setLoadError] = useState("");
+  const [isLoadingConversations, setIsLoadingConversations] = useState(true);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isDeletingMessages, setIsDeletingMessages] = useState(false);
   const [isClearingConversation, setIsClearingConversation] = useState(false);
+  const [isMobileLayout, setIsMobileLayout] = useState(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    return window.matchMedia("(max-width: 768px)").matches;
+  });
   const isBuddy = userType === "buddy";
+  const currentUserId = getSavedUser()?.id || null;
 
-  const loadConversations = async () => {
-    const data = await apiRequest("/messages/conversations");
-    setConversations(data);
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return () => {};
+    }
 
-    setSelectedConversation((currentConversation) => {
-      if (data.length === 0) {
-        return null;
+    const mediaQuery = window.matchMedia("(max-width: 768px)");
+    const handleChange = (event) => setIsMobileLayout(event.matches);
+
+    setIsMobileLayout(mediaQuery.matches);
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", handleChange);
+      return () => mediaQuery.removeEventListener("change", handleChange);
+    }
+
+    mediaQuery.addListener(handleChange);
+    return () => mediaQuery.removeListener(handleChange);
+  }, []);
+
+  const loadConversations = async ({ silent = false } = {}) => {
+    if (!silent) {
+      setIsLoadingConversations(true);
+    }
+
+    try {
+      const data = await apiRequest("/messages/conversations");
+      setConversations(data);
+      setLoadError("");
+      setMessageActionError("");
+
+      setSelectedConversation((currentConversation) => {
+        if (data.length === 0) {
+          return null;
+        }
+
+        if (!currentConversation) {
+          return isMobileLayout ? null : data[0];
+        }
+
+        const matchedConversation = data.find((item) => item.id === currentConversation.id);
+
+        if (!matchedConversation) {
+          return isMobileLayout ? null : data[0];
+        }
+
+        if (currentConversation.id === matchedConversation.id) {
+          return {
+            ...currentConversation,
+            ...matchedConversation,
+          };
+        }
+
+        return matchedConversation;
+      });
+    } catch (error) {
+      setConversations([]);
+      setSelectedConversation(null);
+      setLoadError(error.message || "Could not load conversations.");
+      setMessages([]);
+    } finally {
+      if (!silent) {
+        setIsLoadingConversations(false);
       }
-
-      if (!currentConversation) {
-        return null;
-      }
-
-      return data.find((item) => item.id === currentConversation.id) || null;
-    });
+    }
   };
 
   useEffect(() => {
     loadConversations().catch(() => null);
   }, []);
 
-  const loadMessages = async (conversationId) => {
-    const data = await apiRequest(`/messages/conversations/${conversationId}/messages`);
-    setMessages(Array.isArray(data) ? data : []);
+  useEffect(() => {
+    const handleRealtimeEvent = (event) => {
+      const detail = event.detail || {};
+      const realtimeType = detail.type;
+      const payload = detail.payload || {};
+      const notificationType = payload.notification?.type;
+      const activeConversationId = selectedConversation?.id || null;
+      const sameConversation =
+        activeConversationId && Number(payload.conversationId) === Number(activeConversationId);
+
+      if (realtimeType === "message.created") {
+        loadConversations({ silent: true }).catch(() => null);
+
+        if (
+          sameConversation &&
+          payload.message &&
+          Number(payload.senderId) !== Number(currentUserId)
+        ) {
+          setMessages((prev) => {
+            if (prev.some((message) => Number(message.id) === Number(payload.message.id))) {
+              return prev;
+            }
+
+            return [
+              ...prev,
+              {
+                ...payload.message,
+                sender: "other",
+              },
+            ];
+          });
+        }
+
+        return;
+      }
+
+      if (
+        realtimeType === "message.deleted" ||
+        realtimeType === "conversation.cleared" ||
+        realtimeType === "conversation.read"
+      ) {
+        loadConversations({ silent: true }).catch(() => null);
+
+        if (activeConversationId && Number(payload.conversationId) === Number(activeConversationId)) {
+          loadMessages(activeConversationId, { silent: true }).catch(() => null);
+        }
+
+        return;
+      }
+
+      if (
+        realtimeType === "match.updated" ||
+        (realtimeType === "notification.created" &&
+          ["match_created", "match_reassigned"].includes(notificationType))
+      ) {
+        loadConversations({ silent: true }).catch(() => null);
+      }
+    };
+
+    window.addEventListener(REALTIME_WINDOW_EVENT, handleRealtimeEvent);
+    return () => window.removeEventListener(REALTIME_WINDOW_EVENT, handleRealtimeEvent);
+  }, [currentUserId, selectedConversation]);
+
+  const loadMessages = async (conversationId, { silent = false } = {}) => {
+    if (!silent) {
+      setIsLoadingMessages(true);
+    }
+
+    try {
+      const data = await apiRequest(`/messages/conversations/${conversationId}/messages`);
+      setMessages(Array.isArray(data) ? data : []);
+      setMessageActionError("");
+    } catch (error) {
+      setMessages([]);
+      setMessageActionError(error.message || "Could not load messages.");
+    } finally {
+      if (!silent) {
+        setIsLoadingMessages(false);
+      }
+    }
   };
 
   useEffect(() => {
-    if (!selectedConversation) {
+    if (!selectedConversation?.id) {
       setMessages([]);
       setMessageActionError("");
       return;
@@ -53,7 +191,7 @@ function MessagesPage({ userType = "student" }) {
 
     loadMessages(selectedConversation.id)
       .catch(() => setMessages([]));
-  }, [selectedConversation]);
+  }, [selectedConversation?.id]);
 
   const handleSendMessage = async (text) => {
     if (!selectedConversation) return;
@@ -86,7 +224,7 @@ function MessagesPage({ userType = "student" }) {
         )
       );
 
-      await loadConversations();
+      await loadConversations({ silent: true });
     } catch (error) {
       setMessages((prev) => prev.filter((message) => message.id !== optimisticMessageId));
       throw error;
@@ -117,7 +255,7 @@ function MessagesPage({ userType = "student" }) {
       setMessages((prev) =>
         prev.filter((message) => !deletedMessageIds.includes(message.id))
       );
-      await loadConversations();
+      await loadConversations({ silent: true });
 
       return deletedMessageIds;
     } catch (error) {
@@ -142,7 +280,7 @@ function MessagesPage({ userType = "student" }) {
       });
 
       setMessages([]);
-      await loadConversations();
+      await loadConversations({ silent: true });
     } catch (error) {
       setMessageActionError(error.message || "Could not clear this chat.");
     } finally {
@@ -150,42 +288,74 @@ function MessagesPage({ userType = "student" }) {
     }
   };
 
+  useEffect(() => {
+    if (isMobileLayout || selectedConversation || conversations.length === 0) {
+      return;
+    }
+
+    setSelectedConversation(conversations[0]);
+  }, [conversations, isMobileLayout, selectedConversation]);
+
+  const handleSelectConversation = (conversation) => {
+    setSelectedConversation(conversation);
+  };
+
+  const handleBackToConversations = () => {
+    setSelectedConversation(null);
+    setMessageActionError("");
+  };
+
+  const shouldShowConversationList = !isMobileLayout || !selectedConversation;
+  const shouldShowChatPanel = !isMobileLayout || Boolean(selectedConversation);
+
   return (
     <DashboardLayout title="Messages" sidebarType={isBuddy ? "buddy" : "student"}>
       <section className="messages-page">
         <div className="messages-page-header">
           <h1>Messages</h1>
-          <p>Chat becomes available after a buddy request is accepted.</p>
+          <p>Messages become available after a buddy request is accepted.</p>
         </div>
 
         <div className="messages-layout">
-          {conversations.length > 0 ? (
-            <ConversationsList
-              conversations={conversations}
-              selectedConversation={selectedConversation}
-              onSelectConversation={setSelectedConversation}
-            />
-          ) : (
-            <EmptyConversationsState
-              title="No conversations yet"
-              description="Accept or receive a match to start chatting."
-            />
-          )}
+          {shouldShowConversationList ? (
+            isLoadingConversations ? (
+              <EmptyConversationsState
+                title="Loading conversations"
+                description="Please wait while we load your recent chats."
+              />
+            ) : conversations.length > 0 ? (
+              <ConversationsList
+                conversations={conversations}
+                selectedConversation={selectedConversation}
+                onSelectConversation={handleSelectConversation}
+              />
+            ) : (
+              <EmptyConversationsState
+                title={loadError ? "Could not load conversations" : "No conversations yet"}
+                description={loadError || "Accept or receive a buddy match to start chatting."}
+              />
+            )
+          ) : null}
 
-          {selectedConversation ? (
-            <ChatWindow
-              conversation={selectedConversation}
-              messages={messages}
-              actionError={messageActionError}
-              isClearingConversation={isClearingConversation}
-              isDeletingMessages={isDeletingMessages}
-              onClearConversation={handleClearConversation}
-              onDeleteMessages={handleDeleteMessages}
-              onSendMessage={handleSendMessage}
-            />
-          ) : (
-            <EmptyChatState />
-          )}
+          {shouldShowChatPanel ? (
+            selectedConversation ? (
+              <ChatWindow
+                conversation={selectedConversation}
+                messages={messages}
+                actionError={messageActionError}
+                isLoadingMessages={isLoadingMessages}
+                isClearingConversation={isClearingConversation}
+                isDeletingMessages={isDeletingMessages}
+                onBack={handleBackToConversations}
+                onClearConversation={handleClearConversation}
+                onDeleteMessages={handleDeleteMessages}
+                onSendMessage={handleSendMessage}
+                showBackButton={isMobileLayout}
+              />
+            ) : (
+              <EmptyChatState />
+            )
+          ) : null}
         </div>
       </section>
     </DashboardLayout>
