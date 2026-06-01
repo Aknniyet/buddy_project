@@ -22,7 +22,7 @@ function Footer() {
 
         <div className="footer-column">
           <h4>{t("footer.contact")}</h4>
-          <p>support@kazakhbuddy.kz</p>
+          <p>kazakhbuddy@gmail.com</p>
           <p>Astana, Kazakhstan</p>
         </div>
 

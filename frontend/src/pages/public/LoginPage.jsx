@@ -4,7 +4,7 @@ import "../../styles/login.css";
 import { useAuth } from "../../context/AuthContext";
 import { isValidEmail } from "../../utils/email";
 import { useI18n } from "../../context/I18nContext";
-import logo from "../../assets/kazakhbuddy-logo-sun-transparent.png";
+import logo from "../../assets/kazakhbuddy-logo-brand.png";
 
 function LoginPage() {
   const navigate = useNavigate();
