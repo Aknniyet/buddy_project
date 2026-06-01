@@ -7,6 +7,7 @@ import BuddyList from "../../components/find-buddies/BuddyList";
 import BuddyRequestModal from "../../components/find-buddies/BuddyRequestModal";
 import BuddyFeedbackModal from "../../components/find-buddies/BuddyFeedbackModal";
 import { apiRequest } from "../../lib/api";
+import { REALTIME_WINDOW_EVENT } from "../../lib/realtime";
 import "../../styles/find-buddies.css";
 
 function ReassignmentRequestModal({ buddy, reason, isSubmitting, onReasonChange, onClose, onSubmit }) {
@@ -62,10 +63,13 @@ function FindBuddiesPage() {
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [reassignmentReason, setReassignmentReason] = useState("");
   const [isSubmittingReassignment, setIsSubmittingReassignment] = useState(false);
+  const [isSendingRequest, setIsSendingRequest] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [buddies, setBuddies] = useState([]);
   const [alertMessage, setAlertMessage] = useState("");
 
   const loadBuddies = async () => {
+    setIsLoading(true);
     try {
       const data = await apiRequest("/buddy/available");
       setBuddies(data);
@@ -83,12 +87,35 @@ function FindBuddiesPage() {
 
       setAlertMessage("");
     } catch (error) {
+      setBuddies([]);
       setAlertMessage(error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     loadBuddies();
+  }, []);
+
+  useEffect(() => {
+    const handleRealtimeEvent = (event) => {
+      const detail = event.detail || {};
+      const realtimeType = detail.type;
+      const notificationType = detail.payload?.notification?.type;
+
+      if (
+        realtimeType === "buddy_request.updated" ||
+        realtimeType === "match.updated" ||
+        (realtimeType === "notification.created" &&
+          ["request_accepted", "request_declined", "match_created", "match_reassigned"].includes(notificationType))
+      ) {
+        loadBuddies().catch(() => null);
+      }
+    };
+
+    window.addEventListener(REALTIME_WINDOW_EVENT, handleRealtimeEvent);
+    return () => window.removeEventListener(REALTIME_WINDOW_EVENT, handleRealtimeEvent);
   }, []);
 
   const filteredBuddies = useMemo(() => {
@@ -105,6 +132,7 @@ function FindBuddiesPage() {
 
   const handleSendRequest = async (data) => {
     try {
+      setIsSendingRequest(true);
       const response = await apiRequest("/buddy/requests", {
         method: "POST",
         body: JSON.stringify({
@@ -119,6 +147,9 @@ function FindBuddiesPage() {
       await loadBuddies();
     } catch (error) {
       setAlertMessage(error.message);
+      throw error;
+    } finally {
+      setIsSendingRequest(false);
     }
   };
 
@@ -180,6 +211,12 @@ function FindBuddiesPage() {
         </div>
         <SearchBar searchValue={searchValue} onSearchChange={setSearchValue} />
         <BuddyAlert message={alertMessage} />
+        {isLoading ? (
+          <div className="buddy-empty-state centered">
+            <h3>Loading buddies</h3>
+            <p>Please wait while we prepare the latest available matches for you.</p>
+          </div>
+        ) : (
         <BuddyList
           buddies={filteredBuddies}
           searchValue={searchValue}
@@ -197,7 +234,18 @@ function FindBuddiesPage() {
             setReassignmentReason("");
           }}
         />
-        <BuddyRequestModal buddy={selectedBuddy} isOpen={isModalOpen} onClose={() => { setSelectedBuddy(null); setIsModalOpen(false); }} onSend={handleSendRequest} />
+      )}
+      <BuddyRequestModal
+        buddy={selectedBuddy}
+        isOpen={isModalOpen}
+          isSubmitting={isSendingRequest}
+        onClose={() => {
+          if (isSendingRequest) return;
+          setSelectedBuddy(null);
+          setIsModalOpen(false);
+        }}
+        onSend={handleSendRequest}
+      />
         <BuddyFeedbackModal
           buddy={feedbackBuddy}
           isOpen={isFeedbackModalOpen}
