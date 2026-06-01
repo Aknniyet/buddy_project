@@ -3,9 +3,14 @@ import { translations } from "../i18n/translations";
 
 const I18nContext = createContext(null);
 const STORAGE_KEY = "kazakhbuddy_language";
+const SUPPORTED_LANGUAGES = ["en", "ru", "kz"];
 
 function getNestedValue(object, path) {
   return path.split(".").reduce((acc, key) => acc?.[key], object);
+}
+
+function normalizeLanguage(language) {
+  return SUPPORTED_LANGUAGES.includes(language) ? language : "en";
 }
 
 function formatText(text, values = {}) {
@@ -17,11 +22,12 @@ function formatText(text, values = {}) {
 
 export function I18nProvider({ children }) {
   const [language, setLanguage] = useState(
-    localStorage.getItem(STORAGE_KEY) || "en"
+    normalizeLanguage(localStorage.getItem(STORAGE_KEY) || "en")
   );
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, language);
+    document.documentElement.lang = language;
   }, [language]);
 
   const value = useMemo(() => {

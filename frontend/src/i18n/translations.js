@@ -20,6 +20,8 @@ export const translations = {
       other: "Other",
       back: "Back",
       continue: "Continue",
+      openMenu: "Open menu",
+      closeMenu: "Close menu",
       logIn: "Log in",
       signUp: "Sign up",
       sending: "Sending...",
@@ -28,6 +30,12 @@ export const translations = {
       home: "Home",
       about: "About",
       guide: "Adaptation Guide",
+    },
+    theme: {
+      light: "Light",
+      dark: "Dark",
+      switchToLight: "Switch to light mode",
+      switchToDark: "Switch to dark mode",
     },
     footer: {
       description:
@@ -514,11 +522,19 @@ export const translations = {
       other: "Другой",
       back: "Назад",
       continue: "Далее",
+      openMenu: "Открыть меню",
+      closeMenu: "Закрыть меню",
       logIn: "Войти",
       signUp: "Регистрация",
       sending: "Отправка...",
     },
     nav: { home: "Главная", about: "О нас", guide: "Гид по адаптации" },
+    theme: {
+      light: "Светлая",
+      dark: "Тёмная",
+      switchToLight: "Переключить на светлую тему",
+      switchToDark: "Переключить на тёмную тему",
+    },
     footer: {
       description:
         "Соединяем иностранных студентов с местными buddies, чтобы сделать адаптацию к университетской жизни проще.",
@@ -1001,11 +1017,19 @@ export const translations = {
       other: "Басқа",
       back: "Артқа",
       continue: "Жалғастыру",
+      openMenu: "Мәзірді ашу",
+      closeMenu: "Мәзірді жабу",
       logIn: "Кіру",
       signUp: "Тіркелу",
       sending: "Жіберілуде...",
     },
     nav: { home: "Басты бет", about: "Біз туралы", guide: "Бейімделу нұсқаулығы" },
+    theme: {
+      light: "Жарық",
+      dark: "Қараңғы",
+      switchToLight: "Жарық тақырыпқа ауыстыру",
+      switchToDark: "Қараңғы тақырыпқа ауыстыру",
+    },
     footer: {
       description:
         "Шетелдік студенттерді жергілікті buddies-пен байланыстырып, университет өміріне бейімделуді жеңілдетеміз.",

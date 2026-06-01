@@ -4,7 +4,7 @@ import { sidebarLinks } from "../../constants/dashboardData";
 import { localSidebarLinks } from "../../constants/localDashboardData";
 import { adminSidebarLinks } from "../../constants/adminDashboardData";
 import { useAuth } from "../../context/AuthContext";
-import logo from "../../assets/kazakhbuddy-logo-sun-transparent.png";
+import logo from "../../assets/kazakhbuddy-logo-brand.png";
 
 function DashboardSidebar({
   sidebarType = "student",

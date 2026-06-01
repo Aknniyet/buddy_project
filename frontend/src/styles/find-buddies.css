@@ -406,6 +406,11 @@
   transition: background 0.2s ease;
 }
 
+.connect-btn span,
+.connect-btn svg {
+  color: inherit;
+}
+
 .connect-btn svg {
   opacity: 0.88;
   flex-shrink: 0;
@@ -413,6 +418,7 @@
 
 .connect-btn-primary {
   background: linear-gradient(135deg, #0f9c9c, #14868b);
+  border: 1px solid rgba(9, 91, 96, 0.16);
   box-shadow: none;
 }
 

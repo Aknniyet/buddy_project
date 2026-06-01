@@ -13,7 +13,7 @@ import {
   validateSignupForm,
   validateSignupStepTwo,
 } from "../../utils/userValidation";
-import logo from "../../assets/kazakhbuddy-logo-sun-transparent.png";
+import logo from "../../assets/kazakhbuddy-logo-brand.png";
 
 function SignupPage() {
   const navigate = useNavigate();
