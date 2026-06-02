@@ -121,6 +121,9 @@ button {
 
 .sidebar-user-avatar.image {
   background: transparent;
+  object-fit: cover;
+  display: block;
+  flex-shrink: 0;
 }
 
 .sidebar-user h4 {
