@@ -1,6 +1,7 @@
 import {
   clearConversationForUser,
   createMessage,
+  deleteMessagesForEveryone,
   deleteMessagesForUser,
   findConversationForUser,
   findConversationsForUser,
@@ -174,6 +175,7 @@ export async function sendMessage(req, res) {
 export async function removeMessagesForUser(req, res) {
   try {
     const { conversationId } = req.params;
+    const scope = req.body?.scope === "everyone" ? "everyone" : "me";
     const messageIds = Array.isArray(req.body?.messageIds)
       ? req.body.messageIds
           .map((value) => Number(value))
@@ -190,16 +192,45 @@ export async function removeMessagesForUser(req, res) {
       return res.status(404).json({ message: 'Conversation not found.' });
     }
 
-    const result = await deleteMessagesForUser(conversationId, req.user.id, messageIds);
-    const deletedMessageIds = result.rows.map((item) => item.message_id);
+    const conversation = conversationCheck.rows[0];
+    const recipientId =
+      conversation.international_student_id === req.user.id
+        ? conversation.buddy_id
+        : conversation.international_student_id;
 
-    sendRealtimeEventToUser(req.user.id, "message.deleted", {
-      conversationId: Number(conversationId),
-      deletedMessageIds,
-    });
+    let deletedMessageIds = [];
+
+    if (scope === "everyone") {
+      const result = await deleteMessagesForEveryone(conversationId, req.user.id, messageIds);
+      deletedMessageIds = result.rows.map((item) => item.id);
+
+      if (deletedMessageIds.length === 0) {
+        return res.status(403).json({ message: 'You can only delete your own messages for everyone.' });
+      }
+
+      sendRealtimeEventToUsers(
+        [req.user.id, recipientId],
+        "message.deleted",
+        {
+          conversationId: Number(conversationId),
+          deletedMessageIds,
+          scope,
+        }
+      );
+    } else {
+      const result = await deleteMessagesForUser(conversationId, req.user.id, messageIds);
+      deletedMessageIds = result.rows.map((item) => item.message_id);
+
+      sendRealtimeEventToUser(req.user.id, "message.deleted", {
+        conversationId: Number(conversationId),
+        deletedMessageIds,
+        scope,
+      });
+    }
 
     return res.json({
       deletedMessageIds,
+      scope,
     });
   } catch (error) {
     console.error('Delete messages error:', error.message);
