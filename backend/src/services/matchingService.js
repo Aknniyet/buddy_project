@@ -239,11 +239,14 @@ export function formatBuddyCard(
   const maxBuddies = Number(buddy.max_buddies || 3);
   const matchInsights = getBuddyMatchInsights(student, buddy);
   const isMatched = activeMatchBuddyId === buddy.id;
+  const isBlockedPair = Boolean(buddy.is_blocked_pair);
   const requestStatus = statusMap.get(buddy.id) || null;
   const status = isMatched
     ? "matched"
     : hasActiveMatch
     ? "locked"
+    : isBlockedPair
+    ? "previously_matched"
     : pendingRequestBuddyId && pendingRequestBuddyId !== buddy.id
     ? "waiting"
     : requestStatus;
@@ -277,6 +280,9 @@ export function formatBuddyCard(
     sharedLanguages: matchInsights.sharedLanguages,
     sharedHobbies: matchInsights.sharedHobbies,
     status,
+    blockedReason: buddy.block_reason || null,
+    blockedMatchId: buddy.blocked_match_id || null,
+    blockedAt: buddy.blocked_at || null,
     hasActiveMatch,
     hasPendingRequest: Boolean(pendingRequestBuddyId),
     hasPendingReassignment: isMatched && hasPendingReassignment,

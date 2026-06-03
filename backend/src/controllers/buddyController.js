@@ -5,6 +5,7 @@ import {
   findIncomingRequestsForBuddy,
   findBuddyFeedbackOverview,
   findMyMatches,
+  findBlockedBuddyPair,
   findDeclinedRequestBetween,
   findPendingRequestBetween,
   findStudentMatchedBuddy,
@@ -113,6 +114,13 @@ export async function createRequest(req, res) {
     const buddyResult = await findBuddyCapacity(buddyId);
     if (buddyResult.rows.length === 0) {
       return res.status(404).json({ message: 'Selected buddy is not available.' });
+    }
+
+    const blockedPair = await findBlockedBuddyPair(req.user.id, buddyId);
+    if (blockedPair.rows.length > 0) {
+      return res.status(409).json({
+        message: 'This match was previously ended by admin. Please choose another buddy.',
+      });
     }
 
     const activeStudentsCount = Number(buddyResult.rows[0].active_students_count || 0);
@@ -294,6 +302,12 @@ export async function respondToRequest(req, res) {
 
     if (error.message === 'STUDENT_ALREADY_MATCHED') {
       return res.status(400).json({ message: 'This student already has an active buddy.' });
+    }
+
+    if (error.message === 'PAIR_BLOCKED') {
+      return res.status(409).json({
+        message: 'This match was previously ended by admin. Please choose another student.',
+      });
     }
 
     console.error('Respond to request error:', error.message);
