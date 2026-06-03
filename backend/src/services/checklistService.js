@@ -1,176 +1,270 @@
 import {
-  createCustomChecklistTask,
-  deleteCustomChecklistTask,
   getChecklistTasksByUserId,
-  toggleChecklistTask,
-  updateCustomChecklistTask,
+  insertChecklistTask,
+  updateChecklistTaskMetadata,
 } from "../repositories/checklistRepository.js";
-import {
-  calculateChecklistProgress,
-  ensureChecklist,
-  sortChecklistTasks,
-} from "../services/checklistService.js";
-import { processTaskReminders } from "../services/taskReminderService.js";
+import { query } from "../config/db.js";
+import { ensurePlatformEnhancements } from "./platformSetupService.js";
 
-function triggerTaskReminders() {
-  processTaskReminders().catch(() => null);
+const CATEGORY_ORDER = [
+  "documents",
+  "housing",
+  "transport",
+  "banking",
+  "university",
+  "personal",
+];
+
+const PRIORITY_ORDER = {
+  high: 0,
+  medium: 1,
+  low: 2,
+};
+
+export const defaultChecklistTasks = [
+  {
+    category: "documents",
+    title: "Migration Registration",
+    description: "Confirm your migration registration soon after arrival and keep the confirmation safe.",
+    priority: "high",
+    timeframe: "First 3 days",
+    actionLabel: "Read guide",
+    actionUrl: "/guide",
+  },
+  {
+    category: "documents",
+    title: "Check Visa and Stay Validity",
+    description: "Double-check your visa dates or allowed stay period so you do not miss any deadlines.",
+    priority: "high",
+    timeframe: "Arrival week",
+    actionLabel: "Read guide",
+    actionUrl: "/guide",
+  },
+  {
+    category: "documents",
+    title: "Get Student ID",
+    description: "Collect your student ID from the university office or dean's office and keep it with you on campus.",
+    priority: "high",
+    timeframe: "First week",
+    actionLabel: "Read guide",
+    actionUrl: "/guide",
+  },
+  {
+    category: "housing",
+    title: "Move Into Dormitory or Apartment",
+    description: "Confirm your room, rental details, and the basic move-in steps for your new accommodation.",
+    priority: "high",
+    timeframe: "Arrival week",
+  },
+  {
+    category: "housing",
+    title: "Understand House Rules",
+    description: "Learn the important dormitory or apartment rules, including quiet hours and visitor policies.",
+    priority: "medium",
+    timeframe: "Arrival week",
+  },
+  {
+    category: "transport",
+    title: "Get a Transport Card",
+    description: "Buy or activate a local transport card for buses or other public transport in your city.",
+    priority: "low",
+    timeframe: "Arrival week",
+  },
+  {
+    category: "transport",
+    title: "Learn Your University Route",
+    description: "Practice the route from your accommodation to campus before a busy study day starts.",
+    priority: "high",
+    timeframe: "First week",
+  },
+  {
+    category: "banking",
+    title: "Get IIN",
+    description: "Apply for an Individual Identification Number if you still need one for banking and other services.",
+    priority: "high",
+    timeframe: "First week",
+    actionLabel: "Read guide",
+    actionUrl: "/guide",
+  },
+  {
+    category: "banking",
+    title: "Open a Bank Account",
+    description: "Set up a local bank account for payments, transfers, and everyday student expenses.",
+    priority: "high",
+    timeframe: "First 2 weeks",
+    actionLabel: "Read guide",
+    actionUrl: "/guide",
+  },
+  {
+    category: "university",
+    title: "Save International Office Contact",
+    description: "Store the international office email, room number, and working hours for quick help later.",
+    priority: "medium",
+    timeframe: "First week",
+    actionLabel: "Read guide",
+    actionUrl: "/guide",
+  },
+  {
+    category: "university",
+    title: "Join Student Chats",
+    description: "Join student Telegram or WhatsApp groups so you do not miss announcements and informal support.",
+    priority: "high",
+    timeframe: "Arrival week",
+    actionLabel: "Open community",
+    actionUrl: "/student/community",
+  },
+  {
+    category: "university",
+    title: "Attend an Orientation Event",
+    description: "Take part in a welcome or orientation event and meet other students in a low-pressure setting.",
+    priority: "medium",
+    timeframe: "First month",
+    actionLabel: "Open events",
+    actionUrl: "/student/events",
+  },
+  {
+    category: "personal",
+    title: "Meet Your Buddy",
+    description: "Arrange your first conversation or meeting with your buddy and ask your first practical questions.",
+    priority: "high",
+    timeframe: "First week",
+    actionLabel: "Find a buddy",
+    actionUrl: "/student/find-buddies",
+  },
+  {
+    category: "personal",
+    title: "Keep Emergency Numbers Ready",
+    description: "Save emergency contacts, student support numbers, and at least one trusted contact in Kazakhstan.",
+    priority: "medium",
+    timeframe: "Arrival week",
+  },
+  {
+    category: "personal",
+    title: "Visit One Club or Community Event",
+    description: "Try at least one student club, meetup, or informal event to feel more connected on campus.",
+    priority: "low",
+    timeframe: "First month",
+    actionLabel: "Open events",
+    actionUrl: "/student/events",
+  },
+];
+
+function getCategoryOrder(category) {
+  const index = CATEGORY_ORDER.indexOf(category);
+  return index === -1 ? Number.MAX_SAFE_INTEGER : index;
 }
 
-function formatChecklistTask(item) {
+function getPriorityOrder(priority) {
+  return PRIORITY_ORDER[priority] ?? PRIORITY_ORDER.medium;
+}
+
+function getDeadlineTime(task) {
+  if (!task.deadline) return Number.MAX_SAFE_INTEGER;
+  const time = new Date(task.deadline).getTime();
+  return Number.isNaN(time) ? Number.MAX_SAFE_INTEGER : time;
+}
+
+export function isTaskOverdue(task) {
+  if (task.is_completed || task.completed) return false;
+  if (!task.deadline) return false;
+  return new Date(task.deadline).getTime() < Date.now();
+}
+
+export function isTaskDueSoon(task, withinHours = 48) {
+  if (task.is_completed || task.completed) return false;
+  if (!task.deadline) return false;
+  const diff = new Date(task.deadline).getTime() - Date.now();
+  return diff >= 0 && diff <= withinHours * 60 * 60 * 1000;
+}
+
+export function calculateChecklistProgress(tasks = []) {
+  if (!tasks.length) {
+    return { completedCount: 0, totalCount: 0, progress: 0 };
+  }
+
+  const completedCount = tasks.filter((task) => task.is_completed || task.completed).length;
   return {
-    ...item,
-    completed: item.is_completed,
+    completedCount,
+    totalCount: tasks.length,
+    progress: Math.round((completedCount / tasks.length) * 100),
   };
 }
 
-function validateTaskPayload(body = {}) {
-  const title = body.title?.trim();
-  const description = body.description?.trim();
-  const category = body.category?.trim()?.toLowerCase();
-  const priority = body.priority?.trim()?.toLowerCase() || "medium";
-  const deadline = body.deadline ? new Date(body.deadline) : null;
+export async function ensureChecklist(userId) {
+  await ensurePlatformEnhancements();
 
-  const allowedCategories = new Set([
-    "documents",
-    "housing",
-    "transport",
-    "banking",
-    "university",
-    "personal",
-  ]);
-  const allowedPriorities = new Set(["high", "medium", "low"]);
+  const existing = await getChecklistTasksByUserId(userId);
+  const existingTitles = new Set(existing.rows.map((task) => task.title));
+  const validSystemTitles = new Set(defaultChecklistTasks.map((task) => task.title));
 
-  if (!title || title.length < 3) {
-    return { error: "Task title should be at least 3 characters long." };
+  for (const task of defaultChecklistTasks) {
+    if (!existingTitles.has(task.title)) {
+      await insertChecklistTask(userId, task);
+    } else {
+      await updateChecklistTaskMetadata(userId, task);
+    }
   }
 
-  if (!description || description.length < 5) {
-    return { error: "Task description should be at least 5 characters long." };
-  }
-
-  if (!allowedCategories.has(category)) {
-    return { error: "Task category is invalid." };
-  }
-
-  if (!allowedPriorities.has(priority)) {
-    return { error: "Task priority is invalid." };
-  }
-
-  if (deadline && Number.isNaN(deadline.getTime())) {
-    return { error: "Task deadline is invalid." };
-  }
-
-  return {
-    value: {
-      title,
-      description,
-      category,
-      priority,
-      deadline: deadline ? deadline.toISOString() : null,
-    },
-  };
+  await query(
+    `DELETE FROM adaptation_checklist_tasks
+     WHERE user_id = $1
+       AND COALESCE(is_custom, FALSE) = FALSE
+       AND title <> ALL($2::text[])`,
+    [userId, Array.from(validSystemTitles)]
+  );
 }
 
-export async function getChecklist(req, res) {
-  try {
-    await ensureChecklist(req.user.id);
-    triggerTaskReminders();
+export function sortChecklistTasks(tasks) {
+  const orderMap = new Map(
+    defaultChecklistTasks.map((task, index) => [task.title, index])
+  );
 
-    const result = await getChecklistTasksByUserId(req.user.id);
-    const sortedTasks = sortChecklistTasks(result.rows);
-    const progress = calculateChecklistProgress(sortedTasks);
+  return [...tasks].sort((first, second) => {
+    const firstCategory = getCategoryOrder(first.category);
+    const secondCategory = getCategoryOrder(second.category);
+    if (firstCategory !== secondCategory) return firstCategory - secondCategory;
 
-    const formatted = sortedTasks.map(formatChecklistTask);
+    if (Boolean(first.is_completed) !== Boolean(second.is_completed)) {
+      return Number(first.is_completed) - Number(second.is_completed);
+    }
 
-    return res.json({
-      tasks: formatted,
-      summary: progress,
-    });
-  } catch (error) {
-    console.error("Checklist load error:", error.message);
-    return res.status(500).json({ message: "Could not load checklist." });
-  }
+    if (isTaskOverdue(first) !== isTaskOverdue(second)) {
+      return isTaskOverdue(first) ? -1 : 1;
+    }
+
+    const firstPriority = getPriorityOrder(first.priority);
+    const secondPriority = getPriorityOrder(second.priority);
+    if (firstPriority !== secondPriority) return firstPriority - secondPriority;
+
+    const firstDeadline = getDeadlineTime(first);
+    const secondDeadline = getDeadlineTime(second);
+    if (firstDeadline !== secondDeadline) return firstDeadline - secondDeadline;
+
+    const firstOrder = orderMap.get(first.title) ?? Number.MAX_SAFE_INTEGER;
+    const secondOrder = orderMap.get(second.title) ?? Number.MAX_SAFE_INTEGER;
+    if (firstOrder !== secondOrder) return firstOrder - secondOrder;
+
+    return first.title.localeCompare(second.title);
+  });
 }
 
-export async function toggleTask(req, res) {
-  try {
-    const { taskId } = req.params;
+export function buildNextSteps(tasks = [], limit = 3) {
+  return sortChecklistTasks(tasks)
+    .filter((task) => !task.is_completed)
+    .sort((first, second) => {
+      if (isTaskOverdue(first) !== isTaskOverdue(second)) {
+        return isTaskOverdue(first) ? -1 : 1;
+      }
 
-    const result = await toggleChecklistTask(taskId, req.user.id);
+      if (isTaskDueSoon(first) !== isTaskDueSoon(second)) {
+        return isTaskDueSoon(first) ? -1 : 1;
+      }
 
-    if (!result.rows[0]) {
-      return res.status(404).json({ message: "Task not found." });
-    }
+      const firstPriority = getPriorityOrder(first.priority);
+      const secondPriority = getPriorityOrder(second.priority);
+      if (firstPriority !== secondPriority) return firstPriority - secondPriority;
 
-    return res.json({
-      task: formatChecklistTask(result.rows[0]),
-    });
-  } catch (error) {
-    console.error("Checklist toggle error:", error.message);
-    return res.status(500).json({ message: "Could not update checklist." });
-  }
-}
-
-export async function createTask(req, res) {
-  try {
-    await ensureChecklist(req.user.id);
-    const validation = validateTaskPayload(req.body);
-
-    if (validation.error) {
-      return res.status(400).json({ message: validation.error });
-    }
-
-    const result = await createCustomChecklistTask(req.user.id, validation.value);
-
-    return res.status(201).json({
-      task: formatChecklistTask(result.rows[0]),
-    });
-  } catch (error) {
-    console.error("Checklist create task error:", error.message);
-    return res.status(500).json({ message: "Could not create task." });
-  }
-}
-
-export async function updateTask(req, res) {
-  try {
-    await ensureChecklist(req.user.id);
-    const validation = validateTaskPayload(req.body);
-
-    if (validation.error) {
-      return res.status(400).json({ message: validation.error });
-    }
-
-    const result = await updateCustomChecklistTask(
-      req.params.taskId,
-      req.user.id,
-      validation.value
-    );
-
-    if (!result.rows[0]) {
-      return res.status(404).json({ message: "Custom task not found." });
-    }
-
-    return res.json({
-      task: formatChecklistTask(result.rows[0]),
-    });
-  } catch (error) {
-    console.error("Checklist update task error:", error.message);
-    return res.status(500).json({ message: "Could not update task." });
-  }
-}
-
-export async function deleteTask(req, res) {
-  try {
-    await ensureChecklist(req.user.id);
-    const result = await deleteCustomChecklistTask(req.params.taskId, req.user.id);
-
-    if (!result.rows[0]) {
-      return res.status(404).json({ message: "Custom task not found." });
-    }
-
-    return res.json({ message: "Task deleted." });
-  } catch (error) {
-    console.error("Checklist delete task error:", error.message);
-    return res.status(500).json({ message: "Could not delete task." });
-  }
+      return getDeadlineTime(first) - getDeadlineTime(second);
+    })
+    .slice(0, limit);
 }
