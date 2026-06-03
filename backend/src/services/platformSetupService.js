@@ -30,6 +30,27 @@ export function ensurePlatformEnhancements() {
 
     await query(
       `ALTER TABLE users
+       ADD COLUMN IF NOT EXISTS account_status VARCHAR(30) NOT NULL DEFAULT 'active'`
+    );
+
+    await query(
+      `ALTER TABLE users
+       ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP`
+    );
+
+    await query(
+      `ALTER TABLE users
+       DROP CONSTRAINT IF EXISTS users_account_status_check`
+    );
+
+    await query(
+      `ALTER TABLE users
+       ADD CONSTRAINT users_account_status_check
+       CHECK (account_status IN ('active', 'deleted'))`
+    );
+
+    await query(
+      `ALTER TABLE users
        ALTER COLUMN last_active_at DROP DEFAULT`
     );
 
@@ -121,6 +142,44 @@ export function ensurePlatformEnhancements() {
     );
 
     await query(
+      `CREATE TABLE IF NOT EXISTS blocked_buddy_pairs (
+        id SERIAL PRIMARY KEY,
+        international_student_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        buddy_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        match_id INTEGER REFERENCES buddy_matches(id) ON DELETE SET NULL,
+        reason VARCHAR(30) NOT NULL
+          CHECK (reason IN ('cancelled', 'reassigned')),
+        note TEXT,
+        created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE (international_student_id, buddy_id)
+      )`
+    );
+
+    await query(
+      `CREATE INDEX IF NOT EXISTS idx_blocked_buddy_pairs_student
+       ON blocked_buddy_pairs(international_student_id)`
+    );
+
+    await query(
+      `INSERT INTO blocked_buddy_pairs (
+         international_student_id,
+         buddy_id,
+         match_id,
+         reason,
+         note
+       )
+       SELECT bm.international_student_id,
+              bm.buddy_id,
+              bm.id,
+              'cancelled',
+              'Backfilled from cancelled match history.'
+       FROM buddy_matches bm
+       WHERE bm.status = 'cancelled'
+       ON CONFLICT (international_student_id, buddy_id) DO NOTHING`
+    );
+
+    await query(
       `CREATE INDEX IF NOT EXISTS idx_checklist_deadline
        ON adaptation_checklist_tasks(user_id, deadline)`
     );
@@ -159,6 +218,44 @@ export function ensurePlatformEnhancements() {
     await query(
       `CREATE INDEX IF NOT EXISTS idx_community_posts_status
        ON community_posts(status, created_at DESC)`
+    );
+
+    await query(
+      `CREATE TABLE IF NOT EXISTS account_deletion_requests (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        user_name VARCHAR(150) NOT NULL,
+        user_email VARCHAR(150) NOT NULL,
+        user_role VARCHAR(30) NOT NULL CHECK (user_role IN ('international', 'local')),
+        reason TEXT NOT NULL,
+        status VARCHAR(30) NOT NULL DEFAULT 'pending'
+          CHECK (status IN ('pending', 'approved', 'declined')),
+        reviewed_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        admin_note TEXT,
+        requested_at TIMESTAMP DEFAULT NOW(),
+        reviewed_at TIMESTAMP
+      )`
+    );
+
+    await query(
+      `CREATE UNIQUE INDEX IF NOT EXISTS one_pending_account_deletion_request_per_user
+       ON account_deletion_requests(user_id)
+       WHERE status = 'pending'`
+    );
+
+    await query(
+      `CREATE INDEX IF NOT EXISTS idx_account_deletion_requests_status
+       ON account_deletion_requests(status, requested_at DESC)`
+    );
+
+    await query(
+      `ALTER TABLE messages
+       ADD COLUMN IF NOT EXISTS deleted_for_everyone_at TIMESTAMP`
+    );
+
+    await query(
+      `ALTER TABLE messages
+       ADD COLUMN IF NOT EXISTS deleted_for_everyone_by INTEGER REFERENCES users(id) ON DELETE SET NULL`
     );
   })();
 
