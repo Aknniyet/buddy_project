@@ -2,9 +2,9 @@ import { query } from "../config/db.js";
 
 export function getAdminStats() {
   return Promise.all([
-    query(`SELECT COUNT(*)::int AS count FROM users`),
-    query(`SELECT COUNT(*)::int AS count FROM users WHERE role = 'international'`),
-    query(`SELECT COUNT(*)::int AS count FROM users WHERE role = 'local'`),
+    query(`SELECT COUNT(*)::int AS count FROM users WHERE account_status = 'active'`),
+    query(`SELECT COUNT(*)::int AS count FROM users WHERE role = 'international' AND account_status = 'active'`),
+    query(`SELECT COUNT(*)::int AS count FROM users WHERE role = 'local' AND account_status = 'active'`),
     query(`SELECT COUNT(*)::int AS count FROM buddy_matches WHERE status = 'active'`),
     query(`SELECT COUNT(*)::int AS count FROM buddy_requests WHERE status = 'pending'`),
     query(`SELECT COUNT(*)::int AS count FROM events WHERE event_date >= NOW()`),
@@ -30,6 +30,7 @@ export function getRecentUsers(limit = 5) {
             created_at AT TIME ZONE 'UTC' AS created_at,
             last_active_at AT TIME ZONE 'UTC' AS last_active_at
      FROM users
+     WHERE account_status = 'active'
      ORDER BY created_at DESC
      LIMIT $1`,
     [limit]
@@ -44,6 +45,8 @@ export function getRecentBuddyRequests(limit = 5) {
      FROM buddy_requests br
      JOIN users s ON s.id = br.international_student_id
      JOIN users b ON b.id = br.buddy_id
+     WHERE s.account_status = 'active'
+       AND b.account_status = 'active'
      ORDER BY br.created_at DESC
      LIMIT $1`,
     [limit]
@@ -103,6 +106,7 @@ export function getStudentAdaptationInsights() {
        LIMIT 1
      ) latest_request ON TRUE
      WHERE u.role = 'international'
+       AND u.account_status = 'active'
      ORDER BY u.created_at DESC`
   );
 }

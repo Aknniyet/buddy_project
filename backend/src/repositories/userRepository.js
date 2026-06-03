@@ -2,9 +2,11 @@ import { query } from '../config/db.js';
 
 export function findUserByEmail(email) {
   return query(
-    `SELECT id, full_name, email, password_hash, role, buddy_status, max_buddies, email_verified
+    `SELECT id, full_name, email, password_hash, role, buddy_status, max_buddies,
+            email_verified, account_status, deleted_at
      FROM users
-     WHERE email = $1`,
+     WHERE email = $1
+       AND account_status = 'active'`,
     [email.toLowerCase()]
   );
 }
@@ -15,9 +17,30 @@ export function findUserProfileById(userId) {
             languages, hobbies, about_you, gender, gender_preference,
             buddy_status, max_buddies, preferred_meeting_mode, max_weekly_hours,
             support_areas, profile_photo_url, created_at, email_verified,
-            last_active_at
+            last_active_at, account_status, deleted_at,
+            (
+              SELECT JSON_BUILD_OBJECT(
+                'id', adr.id,
+                'status', adr.status,
+                'reason', adr.reason,
+                'requested_at', adr.requested_at
+              )
+              FROM account_deletion_requests adr
+              WHERE adr.user_id = users.id AND adr.status = 'pending'
+              LIMIT 1
+            ) AS pending_account_deletion_request
      FROM users
-     WHERE id = $1`,
+     WHERE id = $1 AND account_status = 'active'`,
+    [userId]
+  );
+}
+
+export function findActiveUserById(userId) {
+  return query(
+    `SELECT id, full_name, email, role, buddy_status, max_buddies,
+            profile_photo_url, account_status
+     FROM users
+     WHERE id = $1 AND account_status = 'active'`,
     [userId]
   );
 }
@@ -26,9 +49,10 @@ export function createUser(userData) {
   return query(
     `INSERT INTO users (
         full_name, email, password_hash, role, home_country, city, study_program,
-        languages, hobbies, about_you, gender, gender_preference, buddy_status, max_buddies, email_verified
+        languages, hobbies, about_you, gender, gender_preference, buddy_status, max_buddies,
+        preferred_meeting_mode, max_weekly_hours, support_areas, email_verified
      )
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8::text[], $9::text[], $10, $11, $12, $13, $14, $15)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8::text[], $9::text[], $10, $11, $12, $13, $14, $15, $16, $17::text[], $18)
      RETURNING id, full_name, email, role, buddy_status, max_buddies`,
     [
       userData.fullName,
@@ -45,6 +69,9 @@ export function createUser(userData) {
       userData.genderPreference || null,
       userData.buddyStatus,
       userData.maxBuddies || 3,
+      userData.preferredMeetingMode || 'both',
+      userData.maxWeeklyHours || 2,
+      userData.supportAreas || [],
       userData.emailVerified ?? false,
     ]
   );
@@ -107,7 +134,9 @@ export function updateBuddyStatus(userId, buddyStatus) {
     `UPDATE users
      SET buddy_status = $2,
          updated_at = NOW()
-     WHERE id = $1 AND role = 'local'
+     WHERE id = $1
+       AND role = 'local'
+       AND account_status = 'active'
      RETURNING id, full_name, email, role, buddy_status`,
     [userId, buddyStatus]
   );
@@ -159,6 +188,7 @@ export function findCommunityNotificationRecipients(excludeUserId) {
              role = 'international'
              OR (role = 'local' AND buddy_status = 'approved')
            )
+       AND account_status = 'active'
        AND id <> $1`,
     [excludeUserId]
   );
@@ -168,8 +198,11 @@ export function findStudentAndBuddyRecipients() {
   return query(
     `SELECT id, role
      FROM users
-     WHERE role = 'international'
-        OR (role = 'local' AND buddy_status = 'approved')`
+     WHERE account_status = 'active'
+       AND (
+         role = 'international'
+         OR (role = 'local' AND buddy_status = 'approved')
+       )`
   );
 }
 
@@ -185,7 +218,7 @@ export function updateLastActiveAt(userId) {
   return query(
     `UPDATE users
      SET last_active_at = NOW()
-     WHERE id = $1`,
+     WHERE id = $1 AND account_status = 'active'`,
     [userId]
   );
 }

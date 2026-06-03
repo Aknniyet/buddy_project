@@ -475,6 +475,9 @@ export function validateRegistrationData(data) {
   const confirmPassword = String(data.confirmPassword || '');
   const code = trimString(data.code);
   const maxBuddies = normalizeMaxBuddies(data.maxBuddies || 3);
+  const preferredMeetingMode = collapseSpaces(data.preferredMeetingMode || 'both') || 'both';
+  const maxWeeklyHours = normalizeMaxWeeklyHours(data.maxWeeklyHours || 2);
+  const supportAreas = normalizeArray(data.supportAreas).map((item) => collapseSpaces(item)).filter(Boolean);
 
   if (code === '' && Object.prototype.hasOwnProperty.call(data, 'code')) {
     return { error: 'Verification code is required.' };
@@ -516,6 +519,21 @@ export function validateRegistrationData(data) {
     return { error: 'Maximum buddies must be between 1 and 3.' };
   }
 
+  if (role === 'local' && !MEETING_MODES.has(preferredMeetingMode)) {
+    return { error: 'Preferred meeting mode is invalid.' };
+  }
+
+  if (role === 'local' && (!Number.isInteger(maxWeeklyHours) || maxWeeklyHours < 1 || maxWeeklyHours > 20)) {
+    return { error: 'Maximum weekly hours must be between 1 and 20.' };
+  }
+
+  if (role === 'local') {
+    const supportAreasError = validateListField(supportAreas, 'Support areas');
+    if (supportAreasError) {
+      return { error: supportAreasError };
+    }
+  }
+
   return {
     value: {
       ...sharedValidation.value,
@@ -525,6 +543,9 @@ export function validateRegistrationData(data) {
       role,
       code,
       maxBuddies: role === 'local' ? maxBuddies : 3,
+      preferredMeetingMode: role === 'local' ? preferredMeetingMode : null,
+      maxWeeklyHours: role === 'local' ? maxWeeklyHours : null,
+      supportAreas: role === 'local' ? supportAreas : [],
     },
   };
 }

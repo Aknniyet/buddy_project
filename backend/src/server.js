@@ -4,11 +4,13 @@ import { env } from "./config/env.js";
 import { pool } from "./config/db.js";
 import { migrateLegacyMessageEncryption } from "./services/messageEncryptionMigration.js";
 import { createRealtimeServer } from "./services/realtimeService.js";
+import { ensurePlatformEnhancements } from "./services/platformSetupService.js";
 
 async function startServer() {
   try {
     await pool.query("SELECT NOW()");
     console.log("PostgreSQL connected successfully.");
+    await ensurePlatformEnhancements();
     await migrateLegacyMessageEncryption();
 
     const server = createServer(app);
