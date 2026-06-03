@@ -37,6 +37,9 @@ function SignupPage() {
     gender: "",
     genderPreference: "no_preference",
     maxBuddies: "3",
+    preferredMeetingMode: "both",
+    maxWeeklyHours: "2",
+    supportAreas: "",
   });
 
   const handleChange = (e) => {
@@ -379,24 +382,79 @@ function SignupPage() {
                 </div>
 
                 {selectedRole === "local" && (
-                  <div className="form-group">
-                    <label htmlFor="maxBuddies">{t("signup.maxBuddies")}</label>
-                    <div className="select-field-wrap">
-                      <select
-                        id="maxBuddies"
-                        className="signup-select"
-                        name="maxBuddies"
-                        value={formData.maxBuddies}
-                        onChange={handleChange}
-                      >
-                        <option value="1">{t("signup.maxBuddiesOption1")}</option>
-                        <option value="2">{t("signup.maxBuddiesOption2")}</option>
-                        <option value="3">{t("signup.maxBuddiesOption3")}</option>
-                      </select>
-                      <span className="select-field-arrow">v</span>
+                  <>
+                    <div className="form-group">
+                      <label htmlFor="maxBuddies">{t("signup.maxBuddies")}</label>
+                      <div className="select-field-wrap">
+                        <select
+                          id="maxBuddies"
+                          className="signup-select"
+                          name="maxBuddies"
+                          value={formData.maxBuddies}
+                          onChange={handleChange}
+                        >
+                          <option value="1">{t("signup.maxBuddiesOption1")}</option>
+                          <option value="2">{t("signup.maxBuddiesOption2")}</option>
+                          <option value="3">{t("signup.maxBuddiesOption3")}</option>
+                        </select>
+                        <span className="select-field-arrow">v</span>
+                      </div>
+                      <small>{t("signup.maxBuddiesHelp")}</small>
                     </div>
-                    <small>{t("signup.maxBuddiesHelp")}</small>
-                  </div>
+
+                    <div className="form-group">
+                      <label htmlFor="preferredMeetingMode">{t("signup.preferredMeetingMode")}</label>
+                      <div className="select-field-wrap">
+                        <select
+                          id="preferredMeetingMode"
+                          className="signup-select"
+                          name="preferredMeetingMode"
+                          value={formData.preferredMeetingMode}
+                          onChange={handleChange}
+                        >
+                          <option value="online">{t("signup.meetingModeOnline")}</option>
+                          <option value="offline">{t("signup.meetingModeOffline")}</option>
+                          <option value="both">{t("signup.meetingModeBoth")}</option>
+                        </select>
+                        <span className="select-field-arrow">v</span>
+                      </div>
+                      <small>{t("signup.preferredMeetingModeHelp")}</small>
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="maxWeeklyHours">{t("signup.maxWeeklyHours")}</label>
+                      <div className="select-field-wrap">
+                        <select
+                          id="maxWeeklyHours"
+                          className="signup-select"
+                          name="maxWeeklyHours"
+                          value={formData.maxWeeklyHours}
+                          onChange={handleChange}
+                        >
+                          {["1", "2", "3", "4", "5", "6", "8", "10", "12", "15", "20"].map((hours) => (
+                            <option key={hours} value={hours}>
+                              {t("signup.maxWeeklyHoursOption", { hours })}
+                            </option>
+                          ))}
+                        </select>
+                        <span className="select-field-arrow">v</span>
+                      </div>
+                      <small>{t("signup.maxWeeklyHoursHelp")}</small>
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="supportAreas">{t("signup.supportAreas")}</label>
+                      <input
+                        id="supportAreas"
+                        name="supportAreas"
+                        type="text"
+                        placeholder={t("signup.supportAreasPlaceholder")}
+                        value={formData.supportAreas}
+                        onChange={handleChange}
+                      />
+                      <small>{t("signup.supportAreasHelp")}</small>
+                    </div>
+                  </>
                 )}
 
                 {error && <p className="signup-error-text">{error}</p>}

@@ -518,6 +518,9 @@ export function normalizeRegistrationPayload(formData, selectedRole) {
     gender: trimString(formData.gender),
     genderPreference: trimString(formData.genderPreference || "no_preference"),
     maxBuddies: String(formData.maxBuddies || "3"),
+    preferredMeetingMode: trimString(formData.preferredMeetingMode || "both"),
+    maxWeeklyHours: String(formData.maxWeeklyHours || "2"),
+    supportAreas: normalizeList(formData.supportAreas).join(", "),
   };
 }
 
@@ -574,6 +577,26 @@ export function validateSignupForm(formData, selectedRole, t) {
   const maxBuddies = Number.parseInt(String(formData.maxBuddies), 10);
   if (selectedRole === "local" && (!Number.isInteger(maxBuddies) || maxBuddies < 1 || maxBuddies > 3)) {
     return t("signup.errors.maxBuddiesInvalid");
+  }
+
+  if (selectedRole === "local") {
+    const meetingMode = collapseSpaces(formData.preferredMeetingMode || "both");
+    const maxWeeklyHours = Number.parseInt(String(formData.maxWeeklyHours), 10);
+
+    if (!MEETING_MODES.has(meetingMode)) {
+      return t("signup.errors.invalidMeetingMode");
+    }
+
+    if (!Number.isInteger(maxWeeklyHours) || maxWeeklyHours < 1 || maxWeeklyHours > 20) {
+      return t("signup.errors.maxWeeklyHoursInvalid");
+    }
+
+    const supportAreasError = validateListField(formData.supportAreas, "Support areas");
+    if (supportAreasError) {
+      return supportAreasError.startsWith("Support areas should")
+        ? t("signup.errors.supportAreasPlaceholder")
+        : t("signup.errors.supportAreasInvalid");
+    }
   }
 
   return "";
