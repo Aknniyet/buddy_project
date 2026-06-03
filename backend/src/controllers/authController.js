@@ -38,6 +38,9 @@ export async function register(req, res) {
       gender,
       genderPreference,
       maxBuddies,
+      preferredMeetingMode,
+      maxWeeklyHours,
+      supportAreas,
     } = validation.value;
 
     const existingUser = await findUserByEmail(email);
@@ -63,6 +66,9 @@ export async function register(req, res) {
       gender,
       genderPreference,
       maxBuddies,
+      preferredMeetingMode,
+      maxWeeklyHours,
+      supportAreas,
       buddyStatus,
       emailVerified: true,
     });
@@ -103,6 +109,9 @@ export async function registerStart(req, res) {
       gender,
       genderPreference,
       maxBuddies,
+      preferredMeetingMode,
+      maxWeeklyHours,
+      supportAreas,
     } = validation.value;
 
     const existingUser = await findUserByEmail(email);
@@ -133,6 +142,9 @@ export async function registerStart(req, res) {
         gender,
         genderPreference,
         maxBuddies,
+        preferredMeetingMode,
+        maxWeeklyHours,
+        supportAreas,
       },
     });
   } catch (error) {
@@ -190,6 +202,9 @@ export async function registerVerify(req, res) {
       gender,
       genderPreference,
       maxBuddies,
+      preferredMeetingMode,
+      maxWeeklyHours,
+      supportAreas,
     } = validation.value;
 
     const codeResult = await findValidEmailCode(email, code, 'verify_email');
@@ -221,6 +236,9 @@ export async function registerVerify(req, res) {
       gender,
       genderPreference,
       maxBuddies,
+      preferredMeetingMode,
+      maxWeeklyHours,
+      supportAreas,
       buddyStatus,
       emailVerified: true,
     });
@@ -295,6 +313,10 @@ export async function login(req, res) {
 
     if (!user) {
       return res.status(401).json({ message: 'Invalid email or password.' });
+    }
+
+    if (user.account_status !== 'active') {
+      return res.status(403).json({ message: 'This account is no longer active.' });
     }
 
     if (!user.email_verified) {

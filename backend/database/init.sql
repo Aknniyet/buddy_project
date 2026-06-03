@@ -21,6 +21,9 @@ CREATE TABLE IF NOT EXISTS users (
   support_areas TEXT[] DEFAULT ARRAY[]::TEXT[],
   profile_photo_url TEXT,
   email_verified BOOLEAN NOT NULL DEFAULT FALSE,
+  account_status VARCHAR(30) NOT NULL DEFAULT 'active'
+    CHECK (account_status IN ('active', 'deleted')),
+  deleted_at TIMESTAMP,
   last_active_at TIMESTAMP,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
@@ -31,6 +34,12 @@ ADD COLUMN IF NOT EXISTS profile_photo_url TEXT;
 
 ALTER TABLE users
 ADD COLUMN IF NOT EXISTS email_verified BOOLEAN;
+
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS account_status VARCHAR(30) NOT NULL DEFAULT 'active';
+
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
 
 ALTER TABLE users
 ADD COLUMN IF NOT EXISTS max_buddies INTEGER NOT NULL DEFAULT 3;
@@ -61,6 +70,13 @@ DROP CONSTRAINT IF EXISTS users_buddy_status_check;
 ALTER TABLE users
 ADD CONSTRAINT users_buddy_status_check
 CHECK (buddy_status IN ('not_applied', 'pending', 'approved', 'rejected', 'suspended'));
+
+ALTER TABLE users
+DROP CONSTRAINT IF EXISTS users_account_status_check;
+
+ALTER TABLE users
+ADD CONSTRAINT users_account_status_check
+CHECK (account_status IN ('active', 'deleted'));
 
 UPDATE users
 SET email_verified = TRUE
@@ -133,6 +149,22 @@ CREATE UNIQUE INDEX IF NOT EXISTS one_active_match_per_student
 ON buddy_matches (international_student_id)
 WHERE status = 'active';
 
+CREATE TABLE IF NOT EXISTS blocked_buddy_pairs (
+  id SERIAL PRIMARY KEY,
+  international_student_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  buddy_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  match_id INTEGER REFERENCES buddy_matches(id) ON DELETE SET NULL,
+  reason VARCHAR(30) NOT NULL
+    CHECK (reason IN ('cancelled', 'reassigned')),
+  note TEXT,
+  created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE (international_student_id, buddy_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_blocked_buddy_pairs_student
+ON blocked_buddy_pairs(international_student_id);
+
 CREATE TABLE IF NOT EXISTS match_reassignment_requests (
   id SERIAL PRIMARY KEY,
   match_id INTEGER NOT NULL REFERENCES buddy_matches(id) ON DELETE CASCADE,
@@ -194,6 +226,12 @@ ADD COLUMN IF NOT EXISTS encryption_auth_tag TEXT;
 ALTER TABLE messages
 ADD COLUMN IF NOT EXISTS encryption_version VARCHAR(40);
 
+ALTER TABLE messages
+ADD COLUMN IF NOT EXISTS deleted_for_everyone_at TIMESTAMP;
+
+ALTER TABLE messages
+ADD COLUMN IF NOT EXISTS deleted_for_everyone_by INTEGER REFERENCES users(id) ON DELETE SET NULL;
+
 CREATE TABLE IF NOT EXISTS message_deletions (
   id SERIAL PRIMARY KEY,
   message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
@@ -215,6 +253,28 @@ CREATE TABLE IF NOT EXISTS conversation_clears (
 
 CREATE INDEX IF NOT EXISTS idx_conversation_clears_user_id
 ON conversation_clears(user_id, cleared_at DESC);
+
+CREATE TABLE IF NOT EXISTS account_deletion_requests (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  user_name VARCHAR(150) NOT NULL,
+  user_email VARCHAR(150) NOT NULL,
+  user_role VARCHAR(30) NOT NULL CHECK (user_role IN ('international', 'local')),
+  reason TEXT NOT NULL,
+  status VARCHAR(30) NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending', 'approved', 'declined')),
+  reviewed_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  admin_note TEXT,
+  requested_at TIMESTAMP DEFAULT NOW(),
+  reviewed_at TIMESTAMP
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS one_pending_account_deletion_request_per_user
+ON account_deletion_requests(user_id)
+WHERE status = 'pending';
+
+CREATE INDEX IF NOT EXISTS idx_account_deletion_requests_status
+ON account_deletion_requests(status, requested_at DESC);
 
 CREATE TABLE IF NOT EXISTS events (
   id SERIAL PRIMARY KEY,
