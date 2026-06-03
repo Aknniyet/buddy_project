@@ -1,4 +1,4 @@
-import { AlertTriangle, CalendarDays, LayoutGrid, ShieldCheck, Shuffle } from "lucide-react";
+import { AlertTriangle, CalendarDays, LayoutGrid, ShieldCheck, Shuffle, UserX } from "lucide-react";
 
 export const adminSidebarLinks = [
   {
@@ -28,6 +28,12 @@ export const adminSidebarLinks = [
   },
   {
     id: 5,
+    label: "Deletion Requests",
+    path: "/admin/account-deletions",
+    icon: UserX,
+  },
+  {
+    id: 6,
     label: "Events",
     path: "/admin/events",
     icon: CalendarDays,

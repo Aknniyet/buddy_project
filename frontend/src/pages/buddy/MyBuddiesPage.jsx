@@ -3,9 +3,12 @@ import { Link } from "react-router-dom";
 import { Star, Users } from "lucide-react";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import { apiRequest } from "../../lib/api";
+import { REALTIME_WINDOW_EVENT } from "../../lib/realtime";
 import "../../styles/buddy-my-buddies.css";
 
 function MyBuddiesPage() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [students, setStudents] = useState([]);
   const [feedbackSummary, setFeedbackSummary] = useState({
     average_rating: 0,
@@ -13,16 +16,44 @@ function MyBuddiesPage() {
     recent_reviews: [],
   });
 
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      const [matches, feedback] = await Promise.all([
+        apiRequest("/buddy/matches/my"),
+        apiRequest("/buddy/feedback/my-summary"),
+      ]);
+      setStudents(matches);
+      setFeedbackSummary(feedback);
+      setLoadError("");
+    } catch (error) {
+      setLoadError(error.message || "Could not load your students right now.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    Promise.all([
-      apiRequest("/buddy/matches/my"),
-      apiRequest("/buddy/feedback/my-summary"),
-    ])
-      .then(([matches, feedback]) => {
-        setStudents(matches);
-        setFeedbackSummary(feedback);
-      })
-      .catch(() => null);
+    loadData().catch(() => null);
+  }, []);
+
+  useEffect(() => {
+    const handleRealtimeEvent = (event) => {
+      const detail = event.detail || {};
+      const realtimeType = detail.type;
+      const notificationType = detail.payload?.notification?.type;
+
+      if (
+        realtimeType === "match.updated" ||
+        (realtimeType === "notification.created" &&
+          ["match_created", "match_reassigned", "feedback_received"].includes(notificationType))
+      ) {
+        loadData().catch(() => null);
+      }
+    };
+
+    window.addEventListener(REALTIME_WINDOW_EVENT, handleRealtimeEvent);
+    return () => window.removeEventListener(REALTIME_WINDOW_EVENT, handleRealtimeEvent);
   }, []);
 
   return (
@@ -32,6 +63,23 @@ function MyBuddiesPage() {
           <h1>My Students</h1>
           <p>International students you are currently helping</p>
         </div>
+
+        {loadError ? (
+          <div className="my-buddies-feedback-empty">
+            <p>{loadError}</p>
+          </div>
+        ) : null}
+
+        {isLoading ? (
+          <div className="my-buddies-empty-card">
+            <div className="my-buddies-empty-content">
+              <Users size={52} />
+              <h3>Loading your students</h3>
+              <p>Please wait while we load your current matches and feedback summary.</p>
+            </div>
+          </div>
+        ) : (
+          <>
 
         <div className="my-buddies-summary-card">
           <div className="my-buddies-summary-left">
@@ -131,6 +179,8 @@ function MyBuddiesPage() {
               </div>
             ))}
           </div>
+        )}
+          </>
         )}
       </section>
     </DashboardLayout>

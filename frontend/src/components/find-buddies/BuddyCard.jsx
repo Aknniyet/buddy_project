@@ -26,6 +26,7 @@ function BuddyCard({ buddy, onConnect, onLeaveFeedback, onRequestReassignment })
     status === "matched" ||
     status === "locked" ||
     status === "waiting" ||
+    status === "previously_matched" ||
     buddy.spotsAvailable === 0;
   const isAvailable = !isDisabled;
   const meetingMode = buddy.preferredMeetingMode
@@ -38,6 +39,8 @@ function BuddyCard({ buddy, onConnect, onLeaveFeedback, onRequestReassignment })
       : status === "declined"
       ? "Declined"
       : status === "locked"
+      ? "Unavailable"
+      : status === "previously_matched"
       ? "Unavailable"
       : status === "waiting"
       ? "Waiting"
@@ -162,6 +165,8 @@ function BuddyCard({ buddy, onConnect, onLeaveFeedback, onRequestReassignment })
               ? "You already have an active buddy"
               : status === "declined"
               ? "This buddy already declined your request."
+              : status === "previously_matched"
+              ? "This match was previously ended by admin. Please choose another buddy."
               : status === "waiting"
               ? "You already have a pending request."
               : `Matching score: ${buddy.scoreLabel || `${buddy.score}/100`}`}

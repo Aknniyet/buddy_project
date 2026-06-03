@@ -1,6 +1,36 @@
 import { Globe, BookOpen, Clock3, Check, X } from "lucide-react";
 
-function RequestCard({ request, onAccept, onDecline, isPast = false }) {
+function formatSupportTopic(topic) {
+  const compactTopic = String(topic || "").trim();
+
+  if (!compactTopic) return "";
+
+  return compactTopic
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(" ")
+    .map((word) => {
+      const lowerWord = word.toLowerCase();
+
+      if (["iin", "id"].includes(lowerWord)) {
+        return lowerWord.toUpperCase();
+      }
+
+      return lowerWord.charAt(0).toUpperCase() + lowerWord.slice(1);
+    })
+    .join(" ");
+}
+
+function RequestCard({
+  request,
+  onAccept,
+  onDecline,
+  isPast = false,
+  isResponding = false,
+  respondingAction = "",
+}) {
   return (
     <div className="buddy-request-item">
       <div className="buddy-request-main">
@@ -35,6 +65,19 @@ function RequestCard({ request, onAccept, onDecline, isPast = false }) {
             ))}
           </div>
 
+          {request.supportTopics?.length ? (
+            <div className="buddy-request-support">
+              <strong>Needs help with</strong>
+              <div className="buddy-request-support-tags">
+                {request.supportTopics.map((topic) => (
+                  <span key={topic} className="buddy-request-support-tag">
+                    {formatSupportTopic(topic)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           <div className="buddy-request-message">{request.message}</div>
 
           <div className="buddy-request-footer">
@@ -68,19 +111,21 @@ function RequestCard({ request, onAccept, onDecline, isPast = false }) {
                 <button
                   type="button"
                   className="decline-btn"
+                  disabled={isResponding}
                   onClick={() => onDecline(request.id)}
                 >
                   <X size={16} />
-                  <span>Decline</span>
+                  <span>{isResponding && respondingAction === "decline" ? "Declining..." : "Decline"}</span>
                 </button>
 
                 <button
                   type="button"
                   className="accept-btn"
+                  disabled={isResponding}
                   onClick={() => onAccept(request.id)}
                 >
                   <Check size={16} />
-                  <span>Accept</span>
+                  <span>{isResponding && respondingAction === "accept" ? "Accepting..." : "Accept"}</span>
                 </button>
               </div>
             )}
