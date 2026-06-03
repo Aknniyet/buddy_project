@@ -55,6 +55,7 @@ export function findConversationsForUser(userId) {
          ON md.message_id = m.id
         AND md.user_id = $1
        WHERE m.conversation_id = pc.id
+         AND m.deleted_for_everyone_at IS NULL
          AND md.message_id IS NULL
          AND (cc.cleared_at IS NULL OR m.created_at > cc.cleared_at)
        ORDER BY m.created_at DESC
@@ -70,6 +71,7 @@ export function findConversationsForUser(userId) {
          ON md.message_id = m.id
         AND md.user_id = $1
        WHERE m.conversation_id = pc.id
+         AND m.deleted_for_everyone_at IS NULL
          AND m.sender_id <> $1
          AND m.is_read = FALSE
          AND md.message_id IS NULL
@@ -113,6 +115,7 @@ export function findMessagesInConversation(conversationId, userId) {
        ON md.message_id = m.id
       AND md.user_id = $2
      WHERE m.conversation_id = $1
+       AND m.deleted_for_everyone_at IS NULL
        AND md.message_id IS NULL
        AND (cc.cleared_at IS NULL OR m.created_at > cc.cleared_at)
      ORDER BY m.created_at ASC`,
@@ -134,6 +137,7 @@ export function markMessagesAsRead(conversationId, userId) {
          ON md.message_id = m.id
         AND md.user_id = $2
        WHERE m.conversation_id = $1
+         AND m.deleted_for_everyone_at IS NULL
          AND m.sender_id <> $2
          AND m.is_read = FALSE
          AND md.message_id IS NULL
@@ -188,10 +192,25 @@ export function deleteMessagesForUser(conversationId, userId, messageIds) {
        ON cc.conversation_id = m.conversation_id
       AND cc.user_id = $2
      WHERE m.conversation_id = $1
+       AND m.deleted_for_everyone_at IS NULL
        AND m.id = ANY($3::int[])
        AND (cc.cleared_at IS NULL OR m.created_at > cc.cleared_at)
      ON CONFLICT (message_id, user_id) DO NOTHING
      RETURNING message_id`,
+    [conversationId, userId, messageIds]
+  );
+}
+
+export function deleteMessagesForEveryone(conversationId, userId, messageIds) {
+  return query(
+    `UPDATE messages
+     SET deleted_for_everyone_at = NOW(),
+         deleted_for_everyone_by = $2
+     WHERE conversation_id = $1
+       AND id = ANY($3::int[])
+       AND sender_id = $2
+       AND deleted_for_everyone_at IS NULL
+     RETURNING id`,
     [conversationId, userId, messageIds]
   );
 }
