@@ -22,6 +22,7 @@ export function getBuddyProfiles() {
      FROM users u
      LEFT JOIN buddy_matches m ON m.buddy_id = u.id AND m.status = 'active'
      WHERE u.role = 'local'
+       AND u.account_status = 'active'
      GROUP BY u.id
      ORDER BY u.created_at DESC`
   );
@@ -52,6 +53,8 @@ export function getPendingRequestsForAdmin() {
      JOIN users b ON b.id = br.buddy_id
      LEFT JOIN buddy_matches m ON m.buddy_id = b.id AND m.status = 'active'
      WHERE br.status = 'pending'
+       AND s.account_status = 'active'
+       AND b.account_status = 'active'
      GROUP BY br.id, s.id, b.id
      ORDER BY br.created_at DESC`
   );
@@ -62,7 +65,8 @@ export function getActiveMatchesForAdmin() {
     `SELECT bm.id, bm.status, bm.created_at,
             s.id AS student_id, s.full_name AS student_name,
             b.id AS buddy_id, b.full_name AS buddy_name,
-            COALESCE(notes.note_count, 0) AS note_count
+            COALESCE(notes.note_count, 0) AS note_count,
+            COALESCE(blocked.blocked_buddy_ids, ARRAY[]::int[]) AS blocked_buddy_ids
      FROM buddy_matches bm
      JOIN users s ON s.id = bm.international_student_id
      JOIN users b ON b.id = bm.buddy_id
@@ -72,7 +76,14 @@ export function getActiveMatchesForAdmin() {
        WHERE match_id IS NOT NULL
        GROUP BY match_id
      ) notes ON notes.match_id = bm.id
+     LEFT JOIN (
+       SELECT international_student_id, ARRAY_AGG(buddy_id)::int[] AS blocked_buddy_ids
+       FROM blocked_buddy_pairs
+       GROUP BY international_student_id
+     ) blocked ON blocked.international_student_id = s.id
      WHERE bm.status = 'active'
+       AND s.account_status = 'active'
+       AND b.account_status = 'active'
      ORDER BY bm.created_at DESC`
   );
 }
@@ -82,11 +93,19 @@ export function getPendingReassignmentRequestsForAdmin() {
     `SELECT rr.id, rr.match_id, rr.reason, rr.status, rr.created_at,
             s.id AS student_id, s.full_name AS student_name,
             current_buddy.id AS current_buddy_id,
-            current_buddy.full_name AS current_buddy_name
+            current_buddy.full_name AS current_buddy_name,
+            COALESCE(blocked.blocked_buddy_ids, ARRAY[]::int[]) AS blocked_buddy_ids
      FROM match_reassignment_requests rr
      JOIN users s ON s.id = rr.international_student_id
      JOIN users current_buddy ON current_buddy.id = rr.current_buddy_id
+     LEFT JOIN (
+       SELECT international_student_id, ARRAY_AGG(buddy_id)::int[] AS blocked_buddy_ids
+       FROM blocked_buddy_pairs
+       GROUP BY international_student_id
+     ) blocked ON blocked.international_student_id = s.id
      WHERE rr.status = 'pending'
+       AND s.account_status = 'active'
+       AND current_buddy.account_status = 'active'
      ORDER BY rr.created_at DESC`
   );
 }
@@ -109,6 +128,11 @@ export function getUnmatchedStudents() {
               ORDER BY br.created_at DESC
               LIMIT 1
             ), ARRAY[]::text[]) AS latest_support_topics,
+            COALESCE((
+              SELECT ARRAY_AGG(bbp.buddy_id)::int[]
+              FROM blocked_buddy_pairs bbp
+              WHERE bbp.international_student_id = u.id
+            ), ARRAY[]::int[]) AS blocked_buddy_ids,
             CASE
               WHEN EXISTS (
                 SELECT 1 FROM buddy_requests br
@@ -119,6 +143,7 @@ export function getUnmatchedStudents() {
             END AS match_status
      FROM users u
      WHERE u.role = 'international'
+       AND u.account_status = 'active'
        AND NOT EXISTS (
          SELECT 1
          FROM buddy_matches bm
@@ -146,7 +171,9 @@ export function getApprovedBuddiesForAdmin() {
             ) AS feedback_count
      FROM users u
      LEFT JOIN buddy_matches m ON m.buddy_id = u.id AND m.status = 'active'
-     WHERE u.role = 'local' AND u.buddy_status = 'approved'
+     WHERE u.role = 'local'
+       AND u.buddy_status = 'approved'
+       AND u.account_status = 'active'
      GROUP BY u.id
      ORDER BY u.full_name ASC`
   );
@@ -174,6 +201,18 @@ export async function adminApproveRequest({ requestId, adminId }) {
 
     if (buddyRequest.status !== "pending") {
       throw new Error("REQUEST_ALREADY_PROCESSED");
+    }
+
+    const blockedPair = await client.query(
+      `SELECT id
+       FROM blocked_buddy_pairs
+       WHERE international_student_id = $1 AND buddy_id = $2
+       LIMIT 1`,
+      [buddyRequest.international_student_id, buddyRequest.buddy_id]
+    );
+
+    if (blockedPair.rows.length > 0) {
+      throw new Error("PAIR_BLOCKED");
     }
 
     const activeStudentsResult = await client.query(
@@ -245,18 +284,88 @@ export async function adminApproveRequest({ requestId, adminId }) {
   }
 }
 
-export async function updateMatchStatus(matchId, status) {
-  return query(
-    `UPDATE buddy_matches bm
-     SET status = $2
-     FROM users s, users b
-     WHERE bm.id = $1
-       AND s.id = bm.international_student_id
-       AND b.id = bm.buddy_id
-     RETURNING bm.id, bm.international_student_id, bm.buddy_id, bm.status, bm.created_at,
-               s.full_name AS student_name, b.full_name AS buddy_name`,
-    [matchId, status]
-  );
+export async function updateMatchStatus(matchId, status, { adminId = null, note = null } = {}) {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const currentMatchResult = await client.query(
+      `SELECT *
+       FROM buddy_matches
+       WHERE id = $1
+       FOR UPDATE`,
+      [matchId]
+    );
+
+    if (currentMatchResult.rows.length === 0) {
+      await client.query("COMMIT");
+      return { rows: [] };
+    }
+
+    const currentMatch = currentMatchResult.rows[0];
+
+    if (status === "active") {
+      const blockedPair = await client.query(
+        `SELECT id
+         FROM blocked_buddy_pairs
+         WHERE international_student_id = $1 AND buddy_id = $2
+         LIMIT 1`,
+        [currentMatch.international_student_id, currentMatch.buddy_id]
+      );
+
+      if (blockedPair.rows.length > 0) {
+        throw new Error("PAIR_BLOCKED");
+      }
+    }
+
+    const updatedMatch = await client.query(
+      `UPDATE buddy_matches bm
+       SET status = $2
+       FROM users s, users b
+       WHERE bm.id = $1
+         AND s.id = bm.international_student_id
+         AND b.id = bm.buddy_id
+       RETURNING bm.id, bm.international_student_id, bm.buddy_id, bm.status, bm.created_at,
+                 s.full_name AS student_name, b.full_name AS buddy_name`,
+      [matchId, status]
+    );
+
+    if (status === "cancelled") {
+      await client.query(
+        `INSERT INTO blocked_buddy_pairs (
+           international_student_id,
+           buddy_id,
+           match_id,
+           reason,
+           note,
+           created_by
+         )
+         VALUES ($1, $2, $3, 'cancelled', $4, $5)
+         ON CONFLICT (international_student_id, buddy_id)
+         DO UPDATE SET
+           match_id = COALESCE(blocked_buddy_pairs.match_id, EXCLUDED.match_id),
+           reason = EXCLUDED.reason,
+           note = COALESCE(EXCLUDED.note, blocked_buddy_pairs.note),
+           created_by = COALESCE(EXCLUDED.created_by, blocked_buddy_pairs.created_by)`,
+        [
+          currentMatch.international_student_id,
+          currentMatch.buddy_id,
+          matchId,
+          note,
+          adminId,
+        ]
+      );
+    }
+
+    await client.query("COMMIT");
+    return updatedMatch;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export function getMatchHistoryForAdmin() {
@@ -275,6 +384,8 @@ export function getMatchHistoryForAdmin() {
        GROUP BY match_id
      ) notes ON notes.match_id = bm.id
      WHERE bm.status IN ('completed', 'cancelled')
+       AND s.account_status = 'active'
+       AND b.account_status = 'active'
      ORDER BY bm.created_at DESC
      LIMIT 30`
   );
@@ -304,6 +415,8 @@ export async function createManualMatch({ studentId, buddyId }) {
        CROSS JOIN users b
        LEFT JOIN buddy_matches m ON m.buddy_id = b.id AND m.status = 'active'
        WHERE s.id = $1 AND b.id = $2
+         AND s.account_status = 'active'
+         AND b.account_status = 'active'
        GROUP BY s.id, b.id`,
       [studentId, buddyId]
     );
@@ -320,6 +433,18 @@ export async function createManualMatch({ studentId, buddyId }) {
 
     if (pair.buddy_role !== "local" || pair.buddy_status !== "approved") {
       throw new Error("BUDDY_NOT_FOUND");
+    }
+
+    const blockedPair = await client.query(
+      `SELECT id
+       FROM blocked_buddy_pairs
+       WHERE international_student_id = $1 AND buddy_id = $2
+       LIMIT 1`,
+      [studentId, buddyId]
+    );
+
+    if (blockedPair.rows.length > 0) {
+      throw new Error("PAIR_BLOCKED");
     }
 
     if (pair.active_students_count >= Number(pair.max_buddies || 3)) {
@@ -403,13 +528,28 @@ export async function reassignMatch(matchId, newBuddyId, { adminId = null, admin
               COUNT(m.id) FILTER (WHERE m.status = 'active')::int AS active_students_count
        FROM users u
        LEFT JOIN buddy_matches m ON m.buddy_id = u.id AND m.status = 'active'
-       WHERE u.id = $1 AND u.role = 'local' AND u.buddy_status = 'approved'
+       WHERE u.id = $1
+         AND u.role = 'local'
+         AND u.buddy_status = 'approved'
+         AND u.account_status = 'active'
        GROUP BY u.id`,
       [newBuddyId]
     );
 
     if (newBuddyResult.rows.length === 0) {
       throw new Error("BUDDY_NOT_FOUND");
+    }
+
+    const blockedNewPair = await client.query(
+      `SELECT id
+       FROM blocked_buddy_pairs
+       WHERE international_student_id = $1 AND buddy_id = $2
+       LIMIT 1`,
+      [match.international_student_id, newBuddyId]
+    );
+
+    if (blockedNewPair.rows.length > 0) {
+      throw new Error("PAIR_BLOCKED");
     }
 
     if (newBuddyResult.rows[0].active_students_count >= Number(newBuddyResult.rows[0].max_buddies || 3)) {
@@ -438,6 +578,31 @@ export async function reassignMatch(matchId, newBuddyId, { adminId = null, admin
     if (otherActiveMatch.rows.length > 0) {
       throw new Error("STUDENT_ALREADY_MATCHED");
     }
+
+    await client.query(
+      `INSERT INTO blocked_buddy_pairs (
+         international_student_id,
+         buddy_id,
+         match_id,
+         reason,
+         note,
+         created_by
+       )
+       VALUES ($1, $2, $3, 'reassigned', $4, $5)
+       ON CONFLICT (international_student_id, buddy_id)
+       DO UPDATE SET
+         match_id = COALESCE(blocked_buddy_pairs.match_id, EXCLUDED.match_id),
+         reason = EXCLUDED.reason,
+         note = COALESCE(EXCLUDED.note, blocked_buddy_pairs.note),
+         created_by = COALESCE(EXCLUDED.created_by, blocked_buddy_pairs.created_by)`,
+      [
+        match.international_student_id,
+        match.buddy_id,
+        matchId,
+        adminNote,
+        adminId,
+      ]
+    );
 
     const updatedMatch = await client.query(
       `UPDATE buddy_matches

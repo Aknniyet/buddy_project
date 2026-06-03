@@ -12,10 +12,16 @@ import {
   getMatchNotesByAdmin,
   reassignMatchByAdmin,
 } from "../controllers/adminMatchController.js";
+import {
+  getAccountDeletionRequestsByAdmin,
+  reviewAccountDeletionRequestByAdmin,
+} from "../controllers/accountDeletionController.js";
 
 const router = express.Router();
 
 router.get("/dashboard", authenticate, getAdminDashboard);
+router.get("/account-deletion-requests", authenticate, getAccountDeletionRequestsByAdmin);
+router.patch("/account-deletion-requests/:requestId/review", authenticate, reviewAccountDeletionRequestByAdmin);
 router.get("/matches", authenticate, getAdminMatchesOverview);
 router.post("/requests/:requestId/approve", authenticate, approveRequestByAdmin);
 router.post("/matches/manual", authenticate, createManualMatchByAdmin);

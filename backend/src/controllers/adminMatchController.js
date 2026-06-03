@@ -51,15 +51,6 @@ export async function getAdminMatchesOverview(req, res) {
         getMatchHistoryForAdmin(),
       ]);
     const approvedBuddies = buddiesResult.rows;
-    const cancelledBuddyByStudent = new Map();
-
-    matchHistoryResult.rows
-      .filter((match) => match.status === "cancelled")
-      .forEach((match) => {
-        const previous = cancelledBuddyByStudent.get(match.student_id) || new Set();
-        previous.add(match.buddy_id);
-        cancelledBuddyByStudent.set(match.student_id, previous);
-      });
 
     const pendingRequests = pendingResult.rows.map((item) => {
       const matchInsights = getBuddyMatchInsights(
@@ -106,9 +97,9 @@ export async function getAdminMatchesOverview(req, res) {
 
     const suggestedMatches = studentsResult.rows
       .map((student) => {
-        const cancelledBuddies = cancelledBuddyByStudent.get(student.id) || new Set();
+        const blockedBuddies = new Set(student.blocked_buddy_ids || []);
         const ranked = approvedBuddies
-          .filter((buddy) => !cancelledBuddies.has(buddy.id))
+          .filter((buddy) => !blockedBuddies.has(buddy.id))
           .map((buddy) => formatBuddyCard(student, buddy, new Map(), null))
           .filter((buddy) => buddy.spotsAvailable > 0)
           .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
@@ -143,6 +134,7 @@ export async function getAdminMatchesOverview(req, res) {
         languages: student.languages || [],
         interests: student.hobbies || [],
         status: student.match_status,
+        blockedBuddyIds: student.blocked_buddy_ids || [],
         registeredAt: student.created_at,
       })),
       suggestedMatches,
@@ -212,6 +204,8 @@ export async function approveRequestByAdmin(req, res) {
   try {
     if (!ensureAdmin(req, res)) return;
 
+    await ensurePlatformEnhancements();
+
     const result = await adminApproveRequest({
       requestId: req.params.requestId,
       adminId: req.user.id,
@@ -233,6 +227,12 @@ export async function approveRequestByAdmin(req, res) {
 
     if (error.message === "STUDENT_ALREADY_MATCHED") {
       return res.status(400).json({ message: "Student already has an active buddy." });
+    }
+
+    if (error.message === "PAIR_BLOCKED") {
+      return res.status(409).json({
+        message: "This pair was previously ended by admin and cannot be matched again.",
+      });
     }
 
     console.error("Admin approve request error:", error.message);
@@ -308,7 +308,12 @@ export async function changeMatchStatusByAdmin(req, res) {
       return res.status(400).json({ message: "Admin note is required for completing or cancelling a match." });
     }
 
-    const result = await updateMatchStatus(req.params.matchId, status);
+    await ensurePlatformEnhancements();
+
+    const result = await updateMatchStatus(req.params.matchId, status, {
+      adminId: req.user.id,
+      note: note?.trim() || null,
+    });
 
     if (result.rows.length === 0) {
       return res.status(404).json({ message: "Match not found." });
@@ -351,6 +356,12 @@ export async function changeMatchStatusByAdmin(req, res) {
 
     return res.json(result.rows[0]);
   } catch (error) {
+    if (error.message === "PAIR_BLOCKED") {
+      return res.status(409).json({
+        message: "This pair was previously ended by admin and cannot be reactivated.",
+      });
+    }
+
     console.error("Change match status error:", error.message);
     return res.status(500).json({ message: "Could not update match status." });
   }
@@ -365,6 +376,8 @@ export async function createManualMatchByAdmin(req, res) {
     if (!studentId || !buddyId) {
       return res.status(400).json({ message: "Student and buddy are required." });
     }
+
+    await ensurePlatformEnhancements();
 
     const result = await createManualMatch({
       studentId: Number(studentId),
@@ -420,6 +433,12 @@ export async function createManualMatchByAdmin(req, res) {
       return res.status(400).json({ message: "Student already has an active buddy." });
     }
 
+    if (error.message === "PAIR_BLOCKED") {
+      return res.status(409).json({
+        message: "This pair was previously ended by admin and cannot be matched again.",
+      });
+    }
+
     console.error("Create manual match error:", error.message);
     return res.status(500).json({ message: "Could not create manual match." });
   }
@@ -436,6 +455,8 @@ export async function reassignMatchByAdmin(req, res) {
     }
 
     const cleanNote = note?.trim() || "";
+    await ensurePlatformEnhancements();
+
     const result = await reassignMatch(req.params.matchId, newBuddyId, {
       adminId: req.user.id,
       adminNote: cleanNote || null,
@@ -496,6 +517,12 @@ export async function reassignMatchByAdmin(req, res) {
 
     if (error.message === "BUDDY_LIMIT_REACHED") {
       return res.status(400).json({ message: "New buddy is already at full capacity." });
+    }
+
+    if (error.message === "PAIR_BLOCKED") {
+      return res.status(409).json({
+        message: "This student was previously matched with the selected buddy. Choose another buddy.",
+      });
     }
 
     console.error("Reassign match error:", error.message);

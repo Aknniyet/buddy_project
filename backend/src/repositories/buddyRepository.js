@@ -90,7 +90,35 @@ export function findAvailableBuddies(
               FROM buddy_feedback bf
               WHERE bf.buddy_id = u.id AND bf.student_id = $3
               LIMIT 1
-            ) AS current_user_comment
+            ) AS current_user_comment,
+            (
+              SELECT TRUE
+              FROM blocked_buddy_pairs bbp
+              WHERE bbp.international_student_id = $3
+                AND bbp.buddy_id = u.id
+              LIMIT 1
+            ) AS is_blocked_pair,
+            (
+              SELECT bbp.reason
+              FROM blocked_buddy_pairs bbp
+              WHERE bbp.international_student_id = $3
+                AND bbp.buddy_id = u.id
+              LIMIT 1
+            ) AS block_reason,
+            (
+              SELECT bbp.match_id
+              FROM blocked_buddy_pairs bbp
+              WHERE bbp.international_student_id = $3
+                AND bbp.buddy_id = u.id
+              LIMIT 1
+            ) AS blocked_match_id,
+            (
+              SELECT bbp.created_at
+              FROM blocked_buddy_pairs bbp
+              WHERE bbp.international_student_id = $3
+                AND bbp.buddy_id = u.id
+              LIMIT 1
+            ) AS blocked_at
      FROM users u
      LEFT JOIN buddy_matches m ON m.buddy_id = u.id AND m.status = 'active'
      WHERE u.role = 'local' AND u.buddy_status = 'approved'
@@ -98,8 +126,24 @@ export function findAvailableBuddies(
      HAVING $2 = TRUE
         OR COUNT(m.id) FILTER (WHERE m.status = 'active') < u.max_buddies
         OR u.id = $1
+        OR EXISTS (
+          SELECT 1
+          FROM blocked_buddy_pairs bbp
+          WHERE bbp.international_student_id = $3
+            AND bbp.buddy_id = u.id
+        )
      ORDER BY u.full_name ASC`,
     [activeMatchBuddyId, includeFullBuddies, viewerStudentId]
+  );
+}
+
+export function findBlockedBuddyPair(studentId, buddyId) {
+  return query(
+    `SELECT id, reason, match_id, created_at
+     FROM blocked_buddy_pairs
+     WHERE international_student_id = $1 AND buddy_id = $2
+     LIMIT 1`,
+    [studentId, buddyId]
   );
 }
 
@@ -213,6 +257,18 @@ export async function respondToBuddyRequest({ requestId, buddyId, action }) {
         message: 'Request declined.',
         studentId: buddyRequest.international_student_id,
       };
+    }
+
+    const blockedPair = await client.query(
+      `SELECT id
+       FROM blocked_buddy_pairs
+       WHERE international_student_id = $1 AND buddy_id = $2
+       LIMIT 1`,
+      [buddyRequest.international_student_id, buddyId]
+    );
+
+    if (blockedPair.rows.length > 0) {
+      throw new Error('PAIR_BLOCKED');
     }
 
     const activeStudentsResult = await client.query(
