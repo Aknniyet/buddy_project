@@ -13,6 +13,7 @@ function ChatWindow({
   isLoadingMessages = false,
   isClearingConversation,
   isDeletingMessages,
+  deletingMessageScope = "me",
   onBack,
   onClearConversation,
   onDeleteMessages,
@@ -97,6 +98,13 @@ function ChatWindow({
     });
   }, [messages, currentUser?.id, selectedMessageIds]);
 
+  const selectedMessages = renderedMessages.filter((message) =>
+    selectedMessageIds.includes(message.id)
+  );
+  const canDeleteForEveryone =
+    selectedMessages.length > 0 &&
+    selectedMessages.every((message) => message.isMyMessage && message.isSelectable);
+
   useEffect(() => {
     const container = messagesContainerRef.current;
 
@@ -175,12 +183,12 @@ function ChatWindow({
     );
   };
 
-  const handleDeleteSelected = async () => {
+  const handleDeleteSelected = async (scope = "me") => {
     if (selectedMessageIds.length === 0) {
       return;
     }
 
-    await onDeleteMessages(selectedMessageIds);
+    await onDeleteMessages(selectedMessageIds, { scope });
     setSelectedMessageIds([]);
     setIsSelectionMode(false);
   };
@@ -258,12 +266,23 @@ function ChatWindow({
             </button>
             <button
               type="button"
-              className="chat-selection-btn danger"
-              onClick={handleDeleteSelected}
+              className="chat-selection-btn"
+              onClick={() => handleDeleteSelected("me")}
               disabled={selectedMessageIds.length === 0 || isBusy}
             >
               <Trash2 size={16} />
-              {isDeletingMessages ? "Deleting..." : "Delete for me"}
+              {isDeletingMessages && deletingMessageScope === "me" ? "Deleting..." : "Delete for me"}
+            </button>
+            <button
+              type="button"
+              className="chat-selection-btn danger"
+              onClick={() => handleDeleteSelected("everyone")}
+              disabled={!canDeleteForEveryone || isBusy}
+            >
+              <Trash2 size={16} />
+              {isDeletingMessages && deletingMessageScope === "everyone"
+                ? "Deleting..."
+                : "Delete for everyone"}
             </button>
           </div>
         </div>
@@ -285,6 +304,8 @@ function ChatWindow({
         ) : null}
 
         {renderedMessages.map((message) => {
+          const isRowSelectable = isSelectionMode && message.isSelectable;
+
           return (
             <div key={message.id}>
               {message.showDateDivider && (
@@ -296,11 +317,16 @@ function ChatWindow({
               <div
                 className={
                   message.isMyMessage
-                    ? `chat-message-row my-message${message.isSelected ? " selected" : ""}`
-                    : `chat-message-row buddy-message${message.isSelected ? " selected" : ""}`
+                    ? `chat-message-row my-message${message.isSelected ? " selected" : ""}${isRowSelectable ? " selectable" : ""}`
+                    : `chat-message-row buddy-message${message.isSelected ? " selected" : ""}${isRowSelectable ? " selectable" : ""}`
+                }
+                onClick={
+                  isRowSelectable
+                    ? () => toggleMessageSelection(message.id)
+                    : undefined
                 }
               >
-                {isSelectionMode && message.isSelectable ? (
+                {isRowSelectable ? (
                   <button
                     type="button"
                     className={
@@ -308,14 +334,17 @@ function ChatWindow({
                         ? "chat-message-selector checked"
                         : "chat-message-selector"
                     }
-                    onClick={() => toggleMessageSelection(message.id)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      toggleMessageSelection(message.id);
+                    }}
                     aria-label={
                       message.isSelected ? "Unselect message" : "Select message"
                     }
                   />
                 ) : null}
 
-                <div className="chat-bubble">
+                <div className={isRowSelectable ? "chat-bubble selectable" : "chat-bubble"}>
                   <p>{message.text}</p>
                   <span>{message.messageTime || message.time}</span>
                 </div>

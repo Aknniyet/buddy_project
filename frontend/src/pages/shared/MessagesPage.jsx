@@ -17,6 +17,7 @@ function MessagesPage({ userType = "student" }) {
   const [isLoadingConversations, setIsLoadingConversations] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isDeletingMessages, setIsDeletingMessages] = useState(false);
+  const [deletingMessageScope, setDeletingMessageScope] = useState("me");
   const [isClearingConversation, setIsClearingConversation] = useState(false);
   const [isMobileLayout, setIsMobileLayout] = useState(() => {
     if (typeof window === "undefined") {
@@ -231,12 +232,13 @@ function MessagesPage({ userType = "student" }) {
     }
   };
 
-  const handleDeleteMessages = async (messageIds) => {
+  const handleDeleteMessages = async (messageIds, { scope = "me" } = {}) => {
     if (!selectedConversation || messageIds.length === 0) {
       return [];
     }
 
     setIsDeletingMessages(true);
+    setDeletingMessageScope(scope);
     setMessageActionError("");
 
     try {
@@ -244,7 +246,7 @@ function MessagesPage({ userType = "student" }) {
         `/messages/conversations/${selectedConversation.id}/messages`,
         {
           method: "DELETE",
-          body: JSON.stringify({ messageIds }),
+          body: JSON.stringify({ messageIds, scope }),
         }
       );
 
@@ -263,6 +265,7 @@ function MessagesPage({ userType = "student" }) {
       throw error;
     } finally {
       setIsDeletingMessages(false);
+      setDeletingMessageScope("me");
     }
   };
 
@@ -346,6 +349,7 @@ function MessagesPage({ userType = "student" }) {
                 isLoadingMessages={isLoadingMessages}
                 isClearingConversation={isClearingConversation}
                 isDeletingMessages={isDeletingMessages}
+                deletingMessageScope={deletingMessageScope}
                 onBack={handleBackToConversations}
                 onClearConversation={handleClearConversation}
                 onDeleteMessages={handleDeleteMessages}

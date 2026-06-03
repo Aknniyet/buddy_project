@@ -6,6 +6,7 @@ import NotificationsToolbar from "../../components/notifications/NotificationsTo
 import NotificationsList from "../../components/notifications/NotificationsList";
 import NotificationsEmptyState from "../../components/notifications/NotificationsEmptyState";
 import { apiRequest } from "../../lib/api";
+import { REALTIME_WINDOW_EVENT } from "../../lib/realtime";
 import { formatAstanaShortDateTime } from "../../utils/datetime";
 import "../../styles/notifications.css";
 
@@ -36,28 +37,48 @@ function formatDate(date) {
 function NotificationsPage({ userType = "student" }) {
   const [notifications, setNotifications] = useState([]);
   const [loadError, setLoadError] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
   const loadNotifications = async () => {
-    const data = await apiRequest("/notifications");
-    const items = Array.isArray(data) ? data : [];
-    setNotifications(
-      items.map((item) => ({
-        id: item.id,
-        title: item.title,
-        description: item.description,
-        read: item.read,
-        date: formatDate(item.created_at),
-        icon: iconMap[item.type] || Bell,
-      }))
-    );
-    setLoadError("");
+    setIsLoading(true);
+    try {
+      const data = await apiRequest("/notifications");
+      const items = Array.isArray(data) ? data : [];
+      setNotifications(
+        items.map((item) => ({
+          id: item.id,
+          title: item.title,
+          description: item.description,
+          read: item.read,
+          date: formatDate(item.created_at),
+          icon: iconMap[item.type] || Bell,
+        }))
+      );
+      setLoadError("");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
     loadNotifications().catch((error) => {
       setLoadError(error.message || "Could not load notifications.");
       setNotifications([]);
+      setIsLoading(false);
     });
+  }, []);
+
+  useEffect(() => {
+    const handleRealtimeEvent = (event) => {
+      const realtimeType = event.detail?.type;
+
+      if (String(realtimeType || "").startsWith("notification.")) {
+        loadNotifications().catch(() => null);
+      }
+    };
+
+    window.addEventListener(REALTIME_WINDOW_EVENT, handleRealtimeEvent);
+    return () => window.removeEventListener(REALTIME_WINDOW_EVENT, handleRealtimeEvent);
   }, []);
 
   const unreadCount = useMemo(
@@ -88,7 +109,7 @@ function NotificationsPage({ userType = "student" }) {
       <section className="notifications-page">
         <div className="notifications-page-top">
           <NotificationsHeader unreadCount={unreadCount} />
-          <NotificationsToolbar onMarkAllRead={handleMarkAllRead} />
+          <NotificationsToolbar onMarkAllRead={handleMarkAllRead} disabled={isLoading || unreadCount === 0} />
         </div>
 
         <div className="notifications-card">
@@ -101,7 +122,15 @@ function NotificationsPage({ userType = "student" }) {
             <div className="notifications-load-error">{loadError}</div>
           ) : null}
 
-          {notifications.length > 0 ? (
+          {isLoading ? (
+            <div className="notifications-empty-state">
+              <div className="notifications-empty-content">
+                <Bell size={54} />
+                <h3>Loading notifications</h3>
+                <p>Please wait while we load the latest updates for your account.</p>
+              </div>
+            </div>
+          ) : notifications.length > 0 ? (
             <NotificationsList notifications={notifications} onMarkRead={handleMarkRead} onDelete={handleDelete} />
           ) : (
             <NotificationsEmptyState />
