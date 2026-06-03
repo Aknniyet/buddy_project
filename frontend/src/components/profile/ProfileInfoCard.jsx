@@ -61,7 +61,14 @@ function ProfileInfoCard({ profile, formData, isEditing, onChange, onToggleLangu
             </div>
             {isEditing ? (
               section.type === "text" ? (
-                <textarea className="profile-textarea" name={section.key} value={formData[section.key]} onChange={onChange} rows={4} />
+                <textarea
+                  className="profile-textarea"
+                  name={section.key}
+                  value={formData[section.key]}
+                  onChange={onChange}
+                  rows={4}
+                  placeholder={section.placeholder || ""}
+                />
               ) : section.type === "languages" ? (
                 <LanguageSelector
                   selectedLanguages={formData.languages}

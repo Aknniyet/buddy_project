@@ -92,6 +92,7 @@ function AdminMatchesPage() {
   const [searchValue, setSearchValue] = useState("");
   const [filterValue, setFilterValue] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [pendingActionKey, setPendingActionKey] = useState(null);
 
   const loadData = async () => {
     const result = await apiRequest("/admin/matches");
@@ -106,9 +107,12 @@ function AdminMatchesPage() {
     setCurrentPage(1);
   }, [activeTab, searchValue, filterValue]);
 
-  const runAction = async (action, successMessage) => {
+  const isActionPending = (actionKey) => pendingActionKey === actionKey;
+
+  const runAction = async (actionKey, action, successMessage) => {
     try {
       setError("");
+      setPendingActionKey(actionKey);
       await action();
       setStatus(successMessage);
       await loadData();
@@ -116,18 +120,22 @@ function AdminMatchesPage() {
     } catch (actionError) {
       setError(actionError.message || "Admin action failed.");
       return false;
+    } finally {
+      setPendingActionKey(null);
     }
   };
 
   const handleApproveRequest = async (requestId) => {
     await runAction(
+      `approve-request-${requestId}`,
       () => apiRequest(`/admin/requests/${requestId}/approve`, { method: "POST" }),
       "Request approved and match created."
     );
   };
 
   const handleCreateSuggestedMatch = async (item) => {
-    await runAction(
+    const success = await runAction(
+      `create-suggested-${item.studentId}`,
       () =>
         apiRequest("/admin/matches/manual", {
           method: "POST",
@@ -139,11 +147,15 @@ function AdminMatchesPage() {
         }),
       "Recommended match created."
     );
-    setSuggestionNoteByStudent((prev) => ({ ...prev, [item.studentId]: "" }));
+
+    if (success) {
+      setSuggestionNoteByStudent((prev) => ({ ...prev, [item.studentId]: "" }));
+    }
   };
 
   const handleMatchStatus = async (matchId, newStatus) => {
-    await runAction(
+    const success = await runAction(
+      `match-${newStatus}-${matchId}`,
       () =>
         apiRequest(`/admin/matches/${matchId}/status`, {
           method: "PATCH",
@@ -154,7 +166,10 @@ function AdminMatchesPage() {
         }),
       newStatus === "completed" ? "Match completed." : "Match cancelled."
     );
-    setNoteByMatch((prev) => ({ ...prev, [matchId]: "" }));
+
+    if (success) {
+      setNoteByMatch((prev) => ({ ...prev, [matchId]: "" }));
+    }
   };
 
   const handleReassign = async (matchId) => {
@@ -162,6 +177,7 @@ function AdminMatchesPage() {
     if (!newBuddyId) return;
 
     const success = await runAction(
+      `reassign-match-${matchId}`,
       () =>
         apiRequest(`/admin/matches/${matchId}/reassign`, {
           method: "PATCH",
@@ -184,6 +200,7 @@ function AdminMatchesPage() {
     if (!newBuddyId) return;
 
     const success = await runAction(
+      `reassign-request-${request.id}`,
       () =>
         apiRequest(`/admin/matches/${request.match_id}/reassign`, {
           method: "PATCH",
@@ -206,6 +223,7 @@ function AdminMatchesPage() {
     if (!note.trim()) return;
 
     const success = await runAction(
+      `decline-reassignment-${request.id}`,
       () =>
         apiRequest(`/admin/reassignment-requests/${request.id}/decline`, {
           method: "PATCH",
@@ -527,75 +545,106 @@ function AdminMatchesPage() {
               ))}
 
             {activeTab === "requests" &&
-              paginatedItems.map((request) => (
-                <article className="admin-list-item" key={request.id}>
-                  <div className="admin-item-main">
-                    <div className="admin-item-title-row">
-                      <h4>{request.studentName} {"=>"} {request.buddyName}</h4>
-                      <span className="admin-status-pill">{request.scoreLabel || `${request.score}/100`}</span>
-                    </div>
-                    <p>{request.message}</p>
-                    <div className="admin-meta">
-                      <span>{formatAstanaDate(request.createdAt)}</span>
-                      <span>{request.buddyLoad}/{request.buddyMax} active students</span>
-                    </div>
-                    <MatchBreakdown
-                      scoreLabel={request.scoreLabel || `${request.score}/100`}
-                      reasons={request.reasons || []}
-                      breakdown={request.breakdown || []}
-                    />
-                  </div>
+              paginatedItems.map((request) => {
+                const approveActionKey = `approve-request-${request.id}`;
+                const approvePending = isActionPending(approveActionKey);
 
-                  <div className="admin-inline-actions">
-                    <button type="button" className="admin-primary-btn" onClick={() => handleApproveRequest(request.id)}>
-                      Approve request
-                    </button>
-                  </div>
-                </article>
-              ))}
+                return (
+                  <article className="admin-list-item" key={request.id}>
+                    <div className="admin-item-main">
+                      <div className="admin-item-title-row">
+                        <h4>{request.studentName} {"=>"} {request.buddyName}</h4>
+                        <span className="admin-status-pill">{request.scoreLabel || `${request.score}/100`}</span>
+                      </div>
+                      <p>{request.message}</p>
+                      <div className="admin-meta">
+                        <span>{formatAstanaDate(request.createdAt)}</span>
+                        <span>{request.buddyLoad}/{request.buddyMax} active students</span>
+                      </div>
+                      <MatchBreakdown
+                        scoreLabel={request.scoreLabel || `${request.score}/100`}
+                        reasons={request.reasons || []}
+                        breakdown={request.breakdown || []}
+                      />
+                    </div>
+
+                    <div className="admin-inline-actions">
+                      <button
+                        type="button"
+                        className="admin-primary-btn"
+                        onClick={() => handleApproveRequest(request.id)}
+                        disabled={approvePending}
+                        aria-busy={approvePending}
+                      >
+                        {approvePending ? "Approving..." : "Approve request"}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
 
             {activeTab === "recommended" &&
-              paginatedItems.map((item) => (
-                <article className="admin-list-item admin-match-item" key={item.studentId}>
-                  <div className="admin-item-main">
-                    <div className="admin-item-title-row">
-                      <h4>{item.studentName} {"=>"} {item.buddyName}</h4>
-                      <span className="admin-status-pill">{item.scoreLabel || `${item.score}/100`}</span>
-                    </div>
-                    <p>
-                      {item.reasons?.length
-                        ? item.reasons.join(" | ")
-                        : "Available buddy with open capacity."}
-                    </p>
-                    <MatchBreakdown
-                      scoreLabel={item.scoreLabel || `${item.score}/100`}
-                      reasons={item.reasons || []}
-                      breakdown={item.breakdown || []}
-                    />
-                  </div>
+              paginatedItems.map((item) => {
+                const createActionKey = `create-suggested-${item.studentId}`;
+                const createPending = isActionPending(createActionKey);
 
-                  <div className="admin-action-panel">
-                    <textarea
-                      className="admin-note-input compact"
-                      rows={2}
-                      placeholder="Internal note for this recommendation..."
-                      value={suggestionNoteByStudent[item.studentId] || ""}
-                      onChange={(event) =>
-                        setSuggestionNoteByStudent((prev) => ({ ...prev, [item.studentId]: event.target.value }))
-                      }
-                    />
-                    <button type="button" className="admin-primary-btn" onClick={() => handleCreateSuggestedMatch(item)}>
-                      Create match
-                    </button>
-                  </div>
-                </article>
-              ))}
+                return (
+                  <article className="admin-list-item admin-match-item" key={item.studentId}>
+                    <div className="admin-item-main">
+                      <div className="admin-item-title-row">
+                        <h4>{item.studentName} {"=>"} {item.buddyName}</h4>
+                        <span className="admin-status-pill">{item.scoreLabel || `${item.score}/100`}</span>
+                      </div>
+                      <p>
+                        {item.reasons?.length
+                          ? item.reasons.join(" | ")
+                          : "Available buddy with open capacity."}
+                      </p>
+                      <MatchBreakdown
+                        scoreLabel={item.scoreLabel || `${item.score}/100`}
+                        reasons={item.reasons || []}
+                        breakdown={item.breakdown || []}
+                      />
+                    </div>
+
+                    <div className="admin-action-panel">
+                      <textarea
+                        className="admin-note-input compact"
+                        rows={2}
+                        placeholder="Internal note for this recommendation..."
+                        value={suggestionNoteByStudent[item.studentId] || ""}
+                        onChange={(event) =>
+                          setSuggestionNoteByStudent((prev) => ({ ...prev, [item.studentId]: event.target.value }))
+                        }
+                      />
+                      <button
+                        type="button"
+                        className="admin-primary-btn"
+                        onClick={() => handleCreateSuggestedMatch(item)}
+                        disabled={createPending}
+                        aria-busy={createPending}
+                      >
+                        {createPending ? "Creating..." : "Create match"}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
 
             {activeTab === "reassignments" &&
               paginatedItems.map((request) => {
                 const note = noteByRequest[request.id] || "";
+                const blockedBuddyIds = new Set(request.blocked_buddy_ids || []);
+                const reassignRequestActionKey = `reassign-request-${request.id}`;
+                const declineRequestActionKey = `decline-reassignment-${request.id}`;
+                const reassignRequestPending = isActionPending(reassignRequestActionKey);
+                const declineRequestPending = isActionPending(declineRequestActionKey);
+                const requestActionPending = reassignRequestPending || declineRequestPending;
                 const reassignOptions = data.availableBuddies.filter(
-                  (buddy) => buddy.id !== request.current_buddy_id && buddy.spotsAvailable > 0
+                  (buddy) =>
+                    buddy.id !== request.current_buddy_id &&
+                    buddy.spotsAvailable > 0 &&
+                    !blockedBuddyIds.has(buddy.id)
                 );
 
                 return (
@@ -618,6 +667,7 @@ function AdminMatchesPage() {
                         rows={3}
                         placeholder="Admin note for reassignment or decline..."
                         value={note}
+                        disabled={requestActionPending}
                         onChange={(event) =>
                           setNoteByRequest((prev) => ({ ...prev, [request.id]: event.target.value }))
                         }
@@ -627,6 +677,7 @@ function AdminMatchesPage() {
                         <select
                           className="admin-select"
                           value={reassignBuddyByRequest[request.id] || ""}
+                          disabled={requestActionPending}
                           onChange={(event) =>
                             setReassignBuddyByRequest((prev) => ({ ...prev, [request.id]: event.target.value }))
                           }
@@ -644,18 +695,20 @@ function AdminMatchesPage() {
                         <button
                           type="button"
                           className="admin-secondary-btn"
-                          disabled={!reassignBuddyByRequest[request.id]}
+                          disabled={!reassignBuddyByRequest[request.id] || requestActionPending}
                           onClick={() => handleReassignRequest(request)}
+                          aria-busy={reassignRequestPending}
                         >
-                          Reassign
+                          {reassignRequestPending ? "Reassigning..." : "Reassign"}
                         </button>
                         <button
                           type="button"
                           className="admin-danger-btn"
-                          disabled={!note.trim()}
+                          disabled={!note.trim() || requestActionPending}
                           onClick={() => handleDeclineReassignment(request)}
+                          aria-busy={declineRequestPending}
                         >
-                          Decline
+                          {declineRequestPending ? "Declining..." : "Decline"}
                         </button>
                       </div>
                     </div>
@@ -667,8 +720,20 @@ function AdminMatchesPage() {
               paginatedItems.map((match) => {
                 const note = noteByMatch[match.id] || "";
                 const noteMissing = !note.trim();
+                const blockedBuddyIds = new Set(match.blocked_buddy_ids || []);
+                const reassignMatchActionKey = `reassign-match-${match.id}`;
+                const completeMatchActionKey = `match-completed-${match.id}`;
+                const cancelMatchActionKey = `match-cancelled-${match.id}`;
+                const reassignMatchPending = isActionPending(reassignMatchActionKey);
+                const completeMatchPending = isActionPending(completeMatchActionKey);
+                const cancelMatchPending = isActionPending(cancelMatchActionKey);
+                const matchActionPending =
+                  reassignMatchPending || completeMatchPending || cancelMatchPending;
                 const reassignOptions = data.availableBuddies.filter(
-                  (buddy) => buddy.id !== match.buddy_id && buddy.spotsAvailable > 0
+                  (buddy) =>
+                    buddy.id !== match.buddy_id &&
+                    buddy.spotsAvailable > 0 &&
+                    !blockedBuddyIds.has(buddy.id)
                 );
 
                 return (
@@ -688,6 +753,7 @@ function AdminMatchesPage() {
                         rows={3}
                         placeholder="Required reason for complete/cancel, optional for reassign..."
                         value={note}
+                        disabled={matchActionPending}
                         onChange={(event) =>
                           setNoteByMatch((prev) => ({ ...prev, [match.id]: event.target.value }))
                         }
@@ -697,6 +763,7 @@ function AdminMatchesPage() {
                         <select
                           className="admin-select"
                           value={reassignBuddyByMatch[match.id] || ""}
+                          disabled={matchActionPending}
                           onChange={(event) =>
                             setReassignBuddyByMatch((prev) => ({ ...prev, [match.id]: event.target.value }))
                           }
@@ -714,26 +781,29 @@ function AdminMatchesPage() {
                         <button
                           type="button"
                           className="admin-secondary-btn"
-                          disabled={!reassignBuddyByMatch[match.id]}
+                          disabled={!reassignBuddyByMatch[match.id] || matchActionPending}
                           onClick={() => handleReassign(match.id)}
+                          aria-busy={reassignMatchPending}
                         >
-                          Reassign
+                          {reassignMatchPending ? "Reassigning..." : "Reassign"}
                         </button>
                         <button
                           type="button"
                           className="admin-secondary-btn"
-                          disabled={noteMissing}
+                          disabled={noteMissing || matchActionPending}
                           onClick={() => handleMatchStatus(match.id, "completed")}
+                          aria-busy={completeMatchPending}
                         >
-                          Complete
+                          {completeMatchPending ? "Completing..." : "Complete"}
                         </button>
                         <button
                           type="button"
                           className="admin-danger-btn"
-                          disabled={noteMissing}
+                          disabled={noteMissing || matchActionPending}
                           onClick={() => handleMatchStatus(match.id, "cancelled")}
+                          aria-busy={cancelMatchPending}
                         >
-                          Cancel
+                          {cancelMatchPending ? "Canceling..." : "Cancel"}
                         </button>
                       </div>
                     </div>

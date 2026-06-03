@@ -21,10 +21,15 @@ function AdminRiskMonitorPage() {
   });
   const [searchValue, setSearchValue] = useState("");
   const [riskFilter, setRiskFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     apiRequest("/admin/dashboard").then(setDashboard).catch(() => null);
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [riskFilter, searchValue]);
 
   const filteredInsights = useMemo(() => {
     const query = searchValue.trim().toLowerCase();
@@ -55,6 +60,14 @@ function AdminRiskMonitorPage() {
         return (second.risk?.score || 0) - (first.risk?.score || 0);
       });
   }, [dashboard.adaptationInsights, riskFilter, searchValue]);
+
+  const itemsPerPage = 5;
+  const totalPages = Math.max(1, Math.ceil(filteredInsights.length / itemsPerPage));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedInsights = filteredInsights.slice(
+    (safePage - 1) * itemsPerPage,
+    safePage * itemsPerPage
+  );
 
   return (
     <DashboardLayout title="Risk Monitor" sidebarType="admin">
@@ -113,7 +126,7 @@ function AdminRiskMonitorPage() {
             {filteredInsights.length === 0 ? (
               <div className="admin-empty-state">No students match the current risk filter.</div>
             ) : (
-              filteredInsights.map((student) => (
+              paginatedInsights.map((student) => (
                 <article className="admin-list-item" key={student.id}>
                   <div className="admin-item-main">
                     <div className="admin-item-title-row">
@@ -166,6 +179,35 @@ function AdminRiskMonitorPage() {
                 </article>
               ))
             )}
+          </div>
+
+          <div className="admin-pagination">
+            <button
+              type="button"
+              className="admin-page-btn"
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              disabled={safePage === 1}
+            >
+              Prev
+            </button>
+            {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+              <button
+                key={page}
+                type="button"
+                className={`admin-page-btn ${safePage === page ? "active" : ""}`}
+                onClick={() => setCurrentPage(page)}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              type="button"
+              className="admin-page-btn"
+              onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+              disabled={safePage === totalPages}
+            >
+              Next
+            </button>
           </div>
         </div>
       </section>

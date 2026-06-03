@@ -500,6 +500,11 @@
   background: #fcfefe;
 }
 
+.admin-list-item.is-archived {
+  background: #f8fbfb;
+  border-style: dashed;
+}
+
 .admin-profile-item,
 .admin-match-item {
   align-items: stretch;
@@ -545,6 +550,10 @@
   line-height: 1.5;
 }
 
+.admin-muted-text {
+  color: #667085 !important;
+}
+
 .admin-meta {
   display: flex;
   flex-wrap: wrap;
@@ -557,6 +566,41 @@
   background: #eef6f6;
   border-radius: 999px;
   padding: 5px 10px;
+}
+
+.admin-request-reason {
+  margin-top: 12px;
+  border: 1px solid #e4eceb;
+  border-radius: 12px;
+  background: #f8fcfc;
+  padding: 10px 12px;
+}
+
+.admin-request-reason strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #667085;
+}
+
+.admin-request-reason p {
+  margin: 0 !important;
+  color: #0f172a !important;
+  font-size: 14px !important;
+  font-weight: 500;
+  line-height: 1.55;
+}
+
+.admin-archived-note {
+  margin-top: 6px;
+  border: 1px solid #e2ebeb;
+  border-radius: 12px;
+  background: #f4f8f8;
+  padding: 11px 12px;
+  color: #475467;
+  font-size: 14px;
+  line-height: 1.55;
 }
 
 .admin-match-breakdown {
@@ -741,6 +785,11 @@
   color: #15803d;
 }
 
+.admin-status-pill.deleted {
+  background: #eef2f6;
+  color: #526071;
+}
+
 .admin-status-pill.cancelled {
   background: #ffe4e6;
   color: #be123c;
@@ -864,6 +913,17 @@
   font-size: 14px;
   background: #ffffff;
   color: #111827;
+}
+
+.admin-select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding-right: 46px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14' fill='none'%3E%3Cpath d='M3 5.25L7 9.25L11 5.25' stroke='%2344515c' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 14px 14px;
 }
 
 .admin-form textarea {

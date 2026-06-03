@@ -24,6 +24,7 @@ import AdminEventsPage from "../pages/admin/AdminEventsPage";
 import AdminMatchesPage from "../pages/admin/AdminMatchesPage";
 import AdminBuddyProfilesPage from "../pages/admin/AdminBuddyProfilesPage";
 import AdminRiskMonitorPage from "../pages/admin/AdminRiskMonitorPage";
+import AdminAccountDeletionRequestsPage from "../pages/admin/AdminAccountDeletionRequestsPage";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 
 function AppRoutes() {
@@ -219,6 +220,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={["admin"]}>
             <AdminRiskMonitorPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/account-deletions"
+        element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <AdminAccountDeletionRequestsPage />
           </ProtectedRoute>
         }
       />
