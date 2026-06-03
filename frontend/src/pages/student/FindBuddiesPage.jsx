@@ -221,7 +221,14 @@ function FindBuddiesPage() {
           buddies={filteredBuddies}
           searchValue={searchValue}
           onConnect={(buddy) => {
-            if (buddy.status === "locked" || buddy.status === "matched" || buddy.status === "waiting") return;
+            if (
+              buddy.status === "locked" ||
+              buddy.status === "matched" ||
+              buddy.status === "waiting" ||
+              buddy.status === "previously_matched"
+            ) {
+              return;
+            }
             setSelectedBuddy(buddy);
             setIsModalOpen(true);
           }}
